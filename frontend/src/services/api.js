@@ -43,7 +43,7 @@ export const authApi = {
 }
 
 // ── Search / Schedules ────────────────────────────────────────
-// GET /api/schedules/search?origin=&destination=&date=&passengers=
+// GET /api/schedules/search?origin=&destination=&travelDate=&seats=
 //   → ApiResponse<List<ScheduleResponse.Search>>
 //     fields: scheduleId, origin, destination, departureTime, arrivalTime,
 //             baseFare, availableSeats, busName, busType, amenities, durationMins
@@ -90,18 +90,18 @@ export const chatbotApi = {
 // GET  /api/bookings (ADMIN) → all bookings
 export const adminApi = {
   // Stats (no dedicated admin/stats endpoint in backend — build from buses+routes+bookings)
-  getBuses:       (params)   => api.get('/buses', { params }),
+  getBuses:       (params)   => api.get('/admin/buses', { params }),
   createBus:      (data)     => api.post('/buses', data),
   updateBus:      (id, data) => api.put(`/buses/${id}`, data),
   toggleBus:      (id)       => api.delete(`/buses/${id}`),          // deactivates
 
-  getRoutes:      (params)   => api.get('/routes', { params }),
+  getRoutes:      (params)   => api.get('/admin/routes', { params }),
   createRoute:    (data)     => api.post('/routes', data),
   updateRoute:    (id, data) => api.put(`/routes/${id}`, data),
 
-  getSchedules:   (params)   => api.get('/schedules/search', { params }),
-  createSchedule: (data)     => api.post('/schedules', data),
-  updateSchedule: (id, data) => api.put(`/schedules/${id}`, data),
+  getSchedules:   (params)   => api.get('/admin/schedules', { params }),
+  createSchedule: (data)     => api.post('/admin/schedules', data),
+  updateSchedule: (id, data) => api.put(`/admin/schedules/${id}`, data),
   deactivateSchedule: (id)   => api.delete(`/schedules/${id}`),
 
   getAllBookings:  (params)   => api.get('/admin/bookings', { params }),

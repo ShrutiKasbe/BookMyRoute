@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Booking Cancellation</title>
+</head>
+<body style="margin:0; padding:0; background:#f4f7fb; font-family:Arial, Helvetica, sans-serif; color:#1f2937;">
+<table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background:#f4f7fb; padding:24px 0;">
+    <tr>
+        <td align="center">
+            <table role="presentation" width="640" cellspacing="0" cellpadding="0" style="width:640px; max-width:94%; background:#ffffff; border:1px solid #e5e7eb;">
+                <tr>
+                    <td style="background:#b91c1c; color:#ffffff; padding:24px 28px;">
+                        <h1 style="margin:0; font-size:24px; line-height:32px;">Booking cancelled</h1>
+                        <p style="margin:8px 0 0; font-size:15px;">Your cancellation has been confirmed.</p>
+                    </td>
+                </tr>
+                <tr>
+                    <td style="padding:28px;">
+                        <p style="margin:0 0 16px;">Hi <strong th:text="${user.name}">Passenger</strong>,</p>
+                        <p style="margin:0 0 24px;">This email confirms that your BookMyRoute booking has been cancelled.</p>
+
+                        <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="border-collapse:collapse; margin-bottom:24px;">
+                            <tr>
+                                <td style="padding:10px 12px; background:#f9fafb; border:1px solid #e5e7eb; font-weight:bold;">Booking Ref</td>
+                                <td style="padding:10px 12px; border:1px solid #e5e7eb;" th:text="${booking.bookingRef}">BMR-20260516-00001</td>
+                            </tr>
+                            <tr>
+                                <td style="padding:10px 12px; background:#f9fafb; border:1px solid #e5e7eb; font-weight:bold;">Route</td>
+                                <td style="padding:10px 12px; border:1px solid #e5e7eb;">
+                                    <span th:text="${route.origin}">Origin</span> to <span th:text="${route.destination}">Destination</span>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td style="padding:10px 12px; background:#f9fafb; border:1px solid #e5e7eb; font-weight:bold;">Bus</td>
+                                <td style="padding:10px 12px; border:1px solid #e5e7eb;" th:text="${bus.busName}">Bus Name</td>
+                            </tr>
+                            <tr>
+                                <td style="padding:10px 12px; background:#f9fafb; border:1px solid #e5e7eb; font-weight:bold;">Departure</td>
+                                <td style="padding:10px 12px; border:1px solid #e5e7eb;" th:text="${#temporals.format(schedule.departureTime, 'dd MMM yyyy, hh:mm a')}">16 May 2026, 08:00 AM</td>
+                            </tr>
+                        </table>
+
+                        <p style="margin:0 0 14px;">
+                            Refund processing has been initiated for
+                            <strong th:text="${'Rs. ' + #numbers.formatDecimal(booking.totalAmount, 1, 2)}">Rs. 500.00</strong>.
+                        </p>
+                        <p style="margin:0 0 20px;">The refunded amount will be credited according to your payment provider's standard timeline.</p>
+                        <p style="margin:0;">We hope to see you on another BookMyRoute journey soon.</p>
+                    </td>
+                </tr>
+            </table>
+        </td>
+    </tr>
+</table>
+</body>
+</html>

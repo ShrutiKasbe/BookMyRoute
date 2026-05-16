@@ -23,6 +23,18 @@ function minutesToText(mins) {
   return h && m ? `${h}h ${m}m` : h ? `${h}h` : `${m}m`
 }
 
+function getBusId(bus) {
+  return bus?.id ?? bus?.busId
+}
+
+function getRouteId(route) {
+  return route?.id ?? route?.routeId
+}
+
+function isBusActive(bus) {
+  return bus?.isActive !== false && bus?.active !== false
+}
+
 function Tab({ active, onClick, icon, label }) {
   return (
     <button
@@ -89,14 +101,15 @@ export default function AdminDashboardPage() {
       ])
       const nextBuses = unwrap(busRes)
       const nextRoutes = unwrap(routeRes)
+      const firstActiveBus = nextBuses.find(isBusActive)
       setBuses(nextBuses)
       setRoutes(nextRoutes)
       setBookings(unwrap(bookingRes))
       setScheduleForm(f => ({
         ...f,
-        busId: f.busId || String(nextBuses[0]?.id || ''),
-        routeId: f.routeId || String(nextRoutes[0]?.id || ''),
-        availableSeats: f.availableSeats || String(nextBuses[0]?.totalSeats || ''),
+        busId: f.busId || String(getBusId(firstActiveBus) || ''),
+        routeId: f.routeId || String(getRouteId(nextRoutes[0]) || ''),
+        availableSeats: f.availableSeats || String(firstActiveBus?.totalSeats || ''),
       }))
     } catch {
       toast.error('Unable to load admin data')
@@ -108,7 +121,7 @@ export default function AdminDashboardPage() {
   useEffect(() => { loadAdminData() }, [])
 
   const activeBuses = useMemo(
-    () => buses.filter(bus => bus.isActive !== false && bus.active !== false),
+    () => buses.filter(isBusActive),
     [buses]
   )
 
@@ -169,12 +182,12 @@ export default function AdminDashboardPage() {
 
   const createSchedule = async (e) => {
     e.preventDefault()
-    const selectedBus = buses.find(bus => String(bus.id) === String(scheduleForm.busId))
+    const selectedBus = buses.find(bus => String(getBusId(bus)) === String(scheduleForm.busId))
     setSaving(true)
     try {
       await adminApi.createSchedule({
-        bus: { id: Number(scheduleForm.busId) },
-        route: { id: Number(scheduleForm.routeId) },
+        busId: Number(scheduleForm.busId),
+        routeId: Number(scheduleForm.routeId),
         departureTime: scheduleForm.departureTime,
         arrivalTime: scheduleForm.arrivalTime,
         baseFare: Number(scheduleForm.baseFare),
@@ -183,12 +196,12 @@ export default function AdminDashboardPage() {
       })
       toast.success('Schedule added. This bus will now appear in search results for the route.')
       setScheduleForm({
-        busId: String(buses[0]?.id || ''),
-        routeId: String(routes[0]?.id || ''),
+        busId: String(getBusId(activeBuses[0]) || ''),
+        routeId: String(getRouteId(routes[0]) || ''),
         departureTime: '',
         arrivalTime: '',
         baseFare: '',
-        availableSeats: String(buses[0]?.totalSeats || ''),
+        availableSeats: String(activeBuses[0]?.totalSeats || ''),
       })
       await loadAdminData()
       setTab('schedules')
@@ -286,7 +299,7 @@ export default function AdminDashboardPage() {
                       </thead>
                       <tbody>
                         {buses.map(bus => (
-                          <tr key={bus.id} className="border-t border-gray-100">
+                          <tr key={getBusId(bus)} className="border-t border-gray-100">
                             <td className="px-4 py-3 font-800 text-[#172033]">{bus.busName}</td>
                             <td className="px-4 py-3 text-slate-600">{bus.busNumber}</td>
                             <td className="px-4 py-3 text-slate-600">{bus.busType}</td>
@@ -298,7 +311,7 @@ export default function AdminDashboardPage() {
                             </td>
                             <td className="px-4 py-3 text-right">
                               {bus.isActive !== false && (
-                                <button onClick={() => deactivateBus(bus.id)} className="text-sm font-800 text-red-600 hover:underline">
+                                <button onClick={() => deactivateBus(getBusId(bus))} className="text-sm font-800 text-red-600 hover:underline">
                                   Deactivate
                                 </button>
                               )}
@@ -345,7 +358,7 @@ export default function AdminDashboardPage() {
                   </div>
                   <div className="grid gap-3 p-5 md:grid-cols-2">
                     {routes.map(route => (
-                      <div key={route.id} className="rounded-lg border border-gray-200 p-4">
+                      <div key={getRouteId(route)} className="rounded-lg border border-gray-200 p-4">
                         <div className="flex items-center justify-between gap-3">
                           <p className="font-800 text-[#172033]">{route.origin} to {route.destination}</p>
                           <FaRoute className="text-[#d84e55]" />
@@ -366,12 +379,12 @@ export default function AdminDashboardPage() {
                   <div className="grid gap-4">
                     <Field label="Bus">
                       <select required value={scheduleForm.busId} onChange={updateScheduleForm('busId')} className="input-field">
-                        {activeBuses.map(bus => <option key={bus.id} value={bus.id}>{bus.busName} ({bus.busNumber})</option>)}
+                        {activeBuses.map(bus => <option key={getBusId(bus)} value={getBusId(bus)}>{bus.busName} ({bus.busNumber})</option>)}
                       </select>
                     </Field>
                     <Field label="Route">
                       <select required value={scheduleForm.routeId} onChange={updateScheduleForm('routeId')} className="input-field">
-                        {routes.map(route => <option key={route.id} value={route.id}>{route.origin} to {route.destination}</option>)}
+                        {routes.map(route => <option key={getRouteId(route)} value={getRouteId(route)}>{route.origin} to {route.destination}</option>)}
                       </select>
                     </Field>
                     <div className="grid grid-cols-2 gap-3">

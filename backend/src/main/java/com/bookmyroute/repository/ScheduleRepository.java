@@ -17,8 +17,8 @@ public interface ScheduleRepository extends JpaRepository<Schedule, Long> {
         SELECT s FROM Schedule s
         JOIN FETCH s.route r
         JOIN FETCH s.bus b
-        WHERE r.origin     = :origin
-          AND r.destination = :destination
+        WHERE LOWER(r.origin) = LOWER(:origin)
+          AND LOWER(r.destination) = LOWER(:destination)
           AND s.departureTime BETWEEN :from AND :to
           AND s.isActive = true
           AND b.isActive = true

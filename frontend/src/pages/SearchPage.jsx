@@ -134,8 +134,8 @@ export default function SearchPage() {
       const { data } = await searchApi.searchBuses({
         origin: form.from,
         destination: form.to,
-        date: form.date,
-        passengers: Number(form.passengers),
+        travelDate: form.date,
+        seats: Number(form.passengers),
       })
       const list = data?.data ?? []
       setResults(list)

@@ -9,6 +9,9 @@ import com.bookmyroute.exception.BusinessException;
 import com.bookmyroute.exception.ResourceNotFoundException;
 import com.bookmyroute.repository.*;
 import com.bookmyroute.service.BookingService;
+import com.bookmyroute.service.EmailService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -21,12 +24,21 @@ import java.util.concurrent.atomic.AtomicLong;
 
 @Service
 public class BookingServiceImpl implements BookingService {
-    public BookingServiceImpl(BookingRepository bookingRepository, ScheduleRepository scheduleRepository, SeatRepository seatRepository, UserRepository userRepository, PaymentRepository paymentRepository) {
+    private static final Logger log = LoggerFactory.getLogger(BookingServiceImpl.class);
+    private static final AtomicLong SEQ = new AtomicLong(1);
+
+    public BookingServiceImpl(BookingRepository bookingRepository,
+                              ScheduleRepository scheduleRepository,
+                              SeatRepository seatRepository,
+                              UserRepository userRepository,
+                              PaymentRepository paymentRepository,
+                              EmailService emailService) {
         this.bookingRepository = bookingRepository;
         this.scheduleRepository = scheduleRepository;
         this.seatRepository = seatRepository;
         this.userRepository = userRepository;
         this.paymentRepository = paymentRepository;
+        this.emailService = emailService;
     }
 
 
@@ -35,8 +47,7 @@ public class BookingServiceImpl implements BookingService {
     private final SeatRepository seatRepository;
     private final UserRepository userRepository;
     private final PaymentRepository paymentRepository;
-
-    private static final AtomicLong SEQ = new AtomicLong(1);
+    private final EmailService emailService;
 
     @Override
     @Transactional
@@ -98,6 +109,11 @@ public class BookingServiceImpl implements BookingService {
         scheduleRepository.save(schedule);
 
         Booking saved = bookingRepository.save(booking);
+        try {
+            emailService.sendBookingConfirmation(saved);
+        } catch (Exception ex) {
+            log.warn("Failed to send booking confirmation email for {}", saved.getBookingRef(), ex);
+        }
         return toResponse(saved);
     }
 
@@ -149,7 +165,14 @@ public class BookingServiceImpl implements BookingService {
             booking.getPayment().setStatus(PaymentStatus.REFUNDED);
         }
 
-        return toResponse(bookingRepository.save(booking));
+        Booking saved = bookingRepository.save(booking);
+        try {
+            emailService.sendBookingCancellation(saved);
+        } catch (Exception ex) {
+            log.warn("Failed to send booking cancellation email for {}", saved.getBookingRef(), ex);
+        }
+
+        return toResponse(saved);
     }
 
     @Override
