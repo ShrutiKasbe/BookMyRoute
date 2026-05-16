@@ -72,11 +72,13 @@ export const seatApi = {
 //             seats:[{seatNumber, seatType, passengerName, passengerAge, fare}]
 // GET   /api/bookings/my      → List<BookingResponse>
 // GET   /api/bookings/:ref    → BookingResponse
+// GET   /api/bookings/:ref/pdf → PDF blob
 // PATCH /api/bookings/:ref/cancel
 export const bookingApi = {
   createBooking: (data)   => api.post('/bookings', data),
   getMyBookings: ()       => api.get('/bookings/my'),
   getBooking:    (ref)    => api.get(`/bookings/${ref}`),
+  downloadTicket: (ref)   => api.get(`/bookings/${ref}/pdf`, { responseType: 'blob' }),
   cancelBooking: (ref)    => api.patch(`/bookings/${ref}/cancel`),
 }
 

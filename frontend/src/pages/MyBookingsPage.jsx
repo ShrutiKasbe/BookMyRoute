@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { format, parseISO } from 'date-fns'
 import toast from 'react-hot-toast'
-import { FaBus, FaCalendarAlt, FaFilter, FaMoneyBillWave, FaRoute, FaTimes, FaTicketAlt, FaUserFriends } from 'react-icons/fa'
+import { FaBus, FaCalendarAlt, FaDownload, FaFilter, FaMoneyBillWave, FaRoute, FaTimes, FaTicketAlt, FaUserFriends } from 'react-icons/fa'
 import { bookingApi } from '../services/api'
 import { useAuth } from '../context/AuthContext'
 
@@ -21,7 +21,7 @@ function statusFor(status) {
   return STATUS_STYLE[status] || STATUS_STYLE.PENDING
 }
 
-function TicketModal({ booking, onClose, onCancel }) {
+function TicketModal({ booking, onClose, onCancel, onDownload, downloading }) {
   const style = statusFor(booking.bookingStatus)
   const canCancel = booking.bookingStatus === 'CONFIRMED' || booking.bookingStatus === 'PENDING'
   const [cancelling, setCancelling] = useState(false)
@@ -102,30 +102,42 @@ function TicketModal({ booking, onClose, onCancel }) {
             <span className="text-2xl font-800 text-[#d84e55]">Rs {booking.totalAmount}</span>
           </div>
 
-          {canCancel && (
+          <div className="flex flex-col gap-3 sm:flex-row">
             <button
-              onClick={handleCancel}
-              disabled={cancelling}
-              className="flex w-full items-center justify-center gap-2 rounded-lg border border-red-600 py-3 text-sm font-800 text-red-600 transition-colors hover:bg-red-50 disabled:opacity-60"
+              onClick={() => onDownload(booking.bookingRef)}
+              disabled={downloading}
+              className="flex flex-1 items-center justify-center gap-2 rounded-lg bg-[#172033] py-3 text-sm font-800 text-white transition-colors hover:bg-[#22304a] disabled:opacity-60"
             >
-              <FaTimes />
-              {cancelling ? 'Cancelling...' : 'Cancel booking'}
+              <FaDownload />
+              {downloading ? 'Downloading...' : 'Download ticket'}
             </button>
-          )}
+
+            {canCancel && (
+              <button
+                onClick={handleCancel}
+                disabled={cancelling}
+                className="flex flex-1 items-center justify-center gap-2 rounded-lg border border-red-600 py-3 text-sm font-800 text-red-600 transition-colors hover:bg-red-50 disabled:opacity-60"
+              >
+                <FaTimes />
+                {cancelling ? 'Cancelling...' : 'Cancel booking'}
+              </button>
+            )}
+          </div>
         </div>
       </div>
     </div>
   )
 }
 
-function BookingCard({ booking, onClick }) {
+function BookingCard({ booking, onClick, onCancel, onDownload, downloading, cancelling }) {
   const style = statusFor(booking.bookingStatus)
   const seats = booking.seats?.length || 0
+  const canCancel = booking.bookingStatus === 'CONFIRMED' || booking.bookingStatus === 'PENDING'
 
   return (
-    <button className="card-hover block w-full p-5 text-left" onClick={onClick}>
+    <div className="card-hover w-full p-5">
       <div className="grid gap-4 lg:grid-cols-[1fr_auto_auto] lg:items-center">
-        <div className="flex min-w-0 items-center gap-3">
+        <button className="flex min-w-0 items-center gap-3 text-left" onClick={onClick}>
           <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg text-white" style={{ background: style.bg }}>
             <FaTicketAlt />
           </div>
@@ -134,7 +146,7 @@ function BookingCard({ booking, onClick }) {
             <p className="truncate text-lg font-800 text-[#172033]">{booking.origin} to {booking.destination}</p>
             <p className="truncate text-sm text-slate-500">{booking.busName} | {fmtDT(booking.departureTime)}</p>
           </div>
-        </div>
+        </button>
 
         <div className="flex flex-wrap gap-2 text-sm text-slate-600">
           <span className="badge"><FaUserFriends /> {seats} seat{seats !== 1 ? 's' : ''}</span>
@@ -145,7 +157,29 @@ function BookingCard({ booking, onClick }) {
           {style.label}
         </span>
       </div>
-    </button>
+
+      <div className="mt-4 flex flex-wrap justify-end gap-2 border-t border-gray-100 pt-4">
+        <button
+          onClick={() => onDownload(booking.bookingRef)}
+          disabled={downloading}
+          className="flex items-center gap-2 rounded-lg bg-[#172033] px-4 py-2 text-sm font-800 text-white transition-colors hover:bg-[#22304a] disabled:opacity-60"
+        >
+          <FaDownload />
+          {downloading ? 'Downloading...' : 'Download ticket'}
+        </button>
+
+        {canCancel && (
+          <button
+            onClick={() => onCancel(booking.bookingRef)}
+            disabled={cancelling}
+            className="flex items-center gap-2 rounded-lg border border-red-600 px-4 py-2 text-sm font-800 text-red-600 transition-colors hover:bg-red-50 disabled:opacity-60"
+          >
+            <FaTimes />
+            {cancelling ? 'Cancelling...' : 'Cancel booking'}
+          </button>
+        )}
+      </div>
+    </div>
   )
 }
 
@@ -155,6 +189,8 @@ export default function MyBookingsPage() {
   const [loading, setLoading] = useState(true)
   const [selected, setSelected] = useState(null)
   const [filter, setFilter] = useState('ALL')
+  const [downloadingRef, setDownloadingRef] = useState(null)
+  const [cancellingRef, setCancellingRef] = useState(null)
 
   const fetchBookings = async () => {
     setLoading(true)
@@ -171,9 +207,32 @@ export default function MyBookingsPage() {
   useEffect(() => { fetchBookings() }, [])
 
   const handleCancel = async (ref) => {
-    await bookingApi.cancelBooking(ref)
-    toast.success('Booking cancelled. Refund will be processed in 3-5 days.')
-    await fetchBookings()
+    setCancellingRef(ref)
+    try {
+      await bookingApi.cancelBooking(ref)
+      toast.success('Booking cancelled. Refund will be processed in 3-5 days.')
+      await fetchBookings()
+    } finally {
+      setCancellingRef(null)
+    }
+  }
+
+  const handleDownloadTicket = async (ref) => {
+    setDownloadingRef(ref)
+    try {
+      const response = await bookingApi.downloadTicket(ref)
+      const blob = new Blob([response.data], { type: 'application/pdf' })
+      const url = window.URL.createObjectURL(blob)
+      const link = document.createElement('a')
+      link.href = url
+      link.download = `BookMyRoute-${ref}.pdf`
+      document.body.appendChild(link)
+      link.click()
+      link.remove()
+      window.URL.revokeObjectURL(url)
+    } finally {
+      setDownloadingRef(null)
+    }
   }
 
   const filtered = filter === 'ALL' ? bookings : bookings.filter(booking => booking.bookingStatus === filter)
@@ -242,7 +301,15 @@ export default function MyBookingsPage() {
         ) : (
           <div className="grid gap-4">
             {filtered.map(booking => (
-              <BookingCard key={booking.bookingRef} booking={booking} onClick={() => setSelected(booking)} />
+              <BookingCard
+                key={booking.bookingRef}
+                booking={booking}
+                onClick={() => setSelected(booking)}
+                onCancel={handleCancel}
+                onDownload={handleDownloadTicket}
+                downloading={downloadingRef === booking.bookingRef}
+                cancelling={cancellingRef === booking.bookingRef}
+              />
             ))}
           </div>
         )}
@@ -253,6 +320,8 @@ export default function MyBookingsPage() {
           booking={selected}
           onClose={() => setSelected(null)}
           onCancel={handleCancel}
+          onDownload={handleDownloadTicket}
+          downloading={downloadingRef === selected.bookingRef}
         />
       )}
     </div>
