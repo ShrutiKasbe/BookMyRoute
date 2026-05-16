@@ -3,9 +3,13 @@ package com.bookmyroute.controller;
 import com.bookmyroute.dto.request.BookingRequest;
 import com.bookmyroute.dto.response.ApiResponse;
 import com.bookmyroute.dto.response.BookingResponse;
+import com.bookmyroute.service.BookingPdfService;
 import com.bookmyroute.service.BookingService;
 import jakarta.validation.Valid;
+import org.springframework.http.ContentDisposition;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -19,9 +23,11 @@ import java.util.List;
 public class BookingController {
 
     private final BookingService bookingService;
+    private final BookingPdfService bookingPdfService;
 
-    public BookingController(BookingService bookingService) {
+    public BookingController(BookingService bookingService, BookingPdfService bookingPdfService) {
         this.bookingService = bookingService;
+        this.bookingPdfService = bookingPdfService;
     }
 
     @PostMapping
@@ -46,6 +52,20 @@ public class BookingController {
             @AuthenticationPrincipal UserDetails userDetails) {
         return ResponseEntity.ok(ApiResponse.success(
                 bookingService.getBookingByRef(bookingRef, userDetails.getUsername())));
+    }
+
+    @GetMapping("/{bookingRef}/pdf")
+    public ResponseEntity<byte[]> downloadTicketPdf(
+            @PathVariable String bookingRef,
+            @AuthenticationPrincipal UserDetails userDetails) {
+        byte[] pdf = bookingPdfService.generateTicketPdf(bookingRef, userDetails.getUsername());
+        String filename = "BookMyRoute-" + bookingRef + ".pdf";
+
+        return ResponseEntity.ok()
+                .contentType(MediaType.APPLICATION_PDF)
+                .header(HttpHeaders.CONTENT_DISPOSITION,
+                        ContentDisposition.attachment().filename(filename).build().toString())
+                .body(pdf);
     }
 
     // Changed from @PostMapping to @PatchMapping to match REST conventions

@@ -19,6 +19,19 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
     List<Booking> findAllByUserIdAndStatus(Long userId, BookingStatus status);
 
     @Query("""
+        SELECT DISTINCT b FROM Booking b
+        JOIN FETCH b.user u
+        JOIN FETCH b.schedule s
+        JOIN FETCH s.route
+        JOIN FETCH s.bus
+        LEFT JOIN FETCH b.payment
+        LEFT JOIN FETCH b.bookingSeats bs
+        LEFT JOIN FETCH bs.seat
+        WHERE b.bookingRef = :bookingRef
+        """)
+    Optional<Booking> findByBookingRefWithTicketDetails(@Param("bookingRef") String bookingRef);
+
+    @Query("""
         SELECT b FROM Booking b
         JOIN FETCH b.user u
         JOIN FETCH b.schedule s
