@@ -36,10 +36,14 @@ api.interceptors.response.use(
 // POST /api/auth/register  → { name, email, password, phone }
 // POST /api/auth/login     → { email, password }
 // GET  /api/auth/me        → current user (JWT required)
+// PUT  /api/auth/profile   → { name, phone }
+// PUT  /api/auth/change-password → { currentPassword, newPassword }
 export const authApi = {
-  login:    (data) => api.post('/auth/login', data),
-  register: (data) => api.post('/auth/register', data),
-  me:       ()     => api.get('/auth/me'),
+  login:          (data) => api.post('/auth/login', data),
+  register:       (data) => api.post('/auth/register', data),
+  me:             ()     => api.get('/auth/me'),
+  updateProfile:  (data) => api.put('/auth/profile', data),
+  changePassword: (data) => api.put('/auth/change-password', data),
 }
 
 // ── Search / Schedules ────────────────────────────────────────
@@ -84,6 +88,11 @@ export const bookingApi = {
 
 export const chatbotApi = {
   sendMessage: (data) => api.post('/chatbot/message', data),
+}
+
+export const supportApi = {
+  createRequest: (data) => api.post('/support/requests', data),
+  getMyRequests: () => api.get('/support/requests/my'),
 }
 
 // ── Admin ─────────────────────────────────────────────────────

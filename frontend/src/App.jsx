@@ -11,6 +11,7 @@ import SearchPage         from './pages/SearchPage'
 import BookingPage        from './pages/BookingPage'
 import MyBookingsPage     from './pages/MyBookingsPage'
 import AdminDashboardPage from './pages/AdminDashboardPage'
+import ProfilePage        from './pages/ProfilePage'
 
 export default function App() {
   return (
@@ -33,6 +34,9 @@ export default function App() {
             } />
             <Route path="/my-bookings" element={
               <ProtectedRoute><MyBookingsPage /></ProtectedRoute>
+            } />
+            <Route path="/profile" element={
+              <ProtectedRoute><ProfilePage /></ProtectedRoute>
             } />
 
             {/* Admin-only */}

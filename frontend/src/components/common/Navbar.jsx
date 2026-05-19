@@ -1,7 +1,8 @@
 import { Link, useLocation, useNavigate } from 'react-router-dom'
-import { FaBars, FaBusAlt, FaSignOutAlt, FaTimes, FaUserCircle } from 'react-icons/fa'
+import { FaBars, FaBusAlt, FaIdBadge, FaSignOutAlt, FaTimes, FaUserCircle } from 'react-icons/fa'
 import { useState } from 'react'
 import { useAuth } from '../../context/AuthContext'
+import HelpSupport from './HelpSupport'
 
 export default function Navbar() {
   const { user, logout, isAdmin } = useAuth()
@@ -44,6 +45,7 @@ export default function Navbar() {
         </Link>
 
         <div className="hidden items-center gap-1 md:flex">
+          <HelpSupport />
           {user ? (
             <>
               {navLink('/search', 'Search buses')}
@@ -64,6 +66,13 @@ export default function Navbar() {
                       <p className="text-sm font-800 text-[#172033]">{user.name}</p>
                       <p className="text-xs text-slate-500">{user.email}</p>
                     </div>
+                    <Link
+                      to="/profile"
+                      onClick={() => setProfileOpen(false)}
+                      className="flex items-center gap-2 px-4 py-2.5 text-sm font-700 text-[#172033] hover:bg-slate-50"
+                    >
+                      <FaIdBadge className="text-[#d84e55]" /> Profile
+                    </Link>
                     <button
                       onClick={handleLogout}
                       className="flex w-full items-center gap-2 px-4 py-2.5 text-left text-sm font-700 text-red-600 hover:bg-red-50"
@@ -95,6 +104,7 @@ export default function Navbar() {
       {open && (
         <div className="border-t border-gray-100 bg-white px-4 py-4 md:hidden">
           <div className="flex flex-col gap-2">
+            <HelpSupport mobile />
             {user ? (
               <>
                 {navLink('/search', 'Search buses', true)}
@@ -103,6 +113,17 @@ export default function Navbar() {
                 <div className="mt-2 border-t border-gray-100 pt-3">
                   <p className="text-sm font-800 text-[#172033]">{user.name}</p>
                   <p className="mb-3 text-xs text-slate-500">{user.email}</p>
+                  <Link
+                    to="/profile"
+                    onClick={() => setOpen(false)}
+                    className={`mb-2 flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-700 ${
+                      pathname === '/profile'
+                        ? 'bg-[#d84e55]/10 text-[#d84e55]'
+                        : 'text-[#172033] hover:bg-slate-100'
+                    }`}
+                  >
+                    <FaIdBadge /> Profile
+                  </Link>
                   <button
                     onClick={handleLogout}
                     className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm font-700 text-red-600 hover:bg-red-50"
