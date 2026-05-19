@@ -44,6 +44,7 @@ function buildUser(data, fallback = {}) {
     id: source?.userId ?? source?.id ?? data?.userId ?? data?.id ?? fallback.id,
     name: source?.name ?? data?.name ?? fallback.name ?? source?.email ?? data?.email ?? fallback.email ?? 'User',
     email: source?.email ?? data?.email ?? fallback.email,
+    phone: source?.phone ?? data?.phone ?? fallback.phone ?? '',
     role: normalizeRole(role),
   }
 }
@@ -164,8 +165,15 @@ export function AuthProvider({ children }) {
     toast.success('Logged out successfully')
   }
 
+  const updateUser = (data) => {
+    const updated = buildUser(data, user || {})
+    setUser(updated)
+    localStorage.setItem(USER_KEY, JSON.stringify(updated))
+    return updated
+  }
+
   return (
-    <AuthContext.Provider value={{ user, loading, login, adminLogin, register, logout, isAdmin: isAdminRole(user?.role) }}>
+    <AuthContext.Provider value={{ user, loading, login, adminLogin, register, logout, updateUser, isAdmin: isAdminRole(user?.role) }}>
       {children}
     </AuthContext.Provider>
   )

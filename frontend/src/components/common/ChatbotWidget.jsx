@@ -1,32 +1,32 @@
 import { useEffect, useRef, useState } from 'react'
-import { FaBus, FaPaperPlane, FaRobot, FaTimes } from 'react-icons/fa'
+import { FaBus, FaPaperPlane, FaRobot, FaTimes, FaTrash } from 'react-icons/fa'
 import { chatbotApi } from '../../services/api'
 
 const STARTER_MESSAGES = [
   'Which buses are available today?',
   'How do I cancel a booking?',
-  'Tell me about fares and seats',
+  'How can I download my ticket PDF?',
 ]
 
-function getBotReply(res) {
+const WELCOME_MESSAGE = {
+  id: 'welcome',
+  role: 'assistant',
+  text: 'Hi, I am the BookMyRoute assistant. Ask me about routes, schedules, fares, seats, bookings, payments, ticket PDFs, or cancellations.',
+  suggestions: STARTER_MESSAGES,
+}
+
+function getBotPayload(res) {
   const payload = res.data?.data ?? res.data?.result ?? res.data
-  return (
-    payload?.reply ||
-    payload?.message ||
-    payload?.answer ||
-    'I could not read the chatbot response. Please try again.'
-  )
+  return {
+    text: payload?.reply || payload?.message || payload?.answer || 'I could not read the chatbot response. Please try again.',
+    provider: payload?.provider,
+    suggestions: Array.isArray(payload?.suggestions) ? payload.suggestions : [],
+  }
 }
 
 export default function ChatbotWidget() {
   const [open, setOpen] = useState(false)
-  const [messages, setMessages] = useState([
-    {
-      id: 'welcome',
-      role: 'assistant',
-      text: 'Hi, I am the BookMyRoute assistant. Ask me about routes, schedules, fares, seats, bookings, payments, or cancellations.',
-    },
-  ])
+  const [messages, setMessages] = useState([WELCOME_MESSAGE])
   const [input, setInput] = useState('')
   const [loading, setLoading] = useState(false)
   const listRef = useRef(null)
@@ -44,15 +44,27 @@ export default function ChatbotWidget() {
     if (!clean || loading) return
 
     const userMessage = { id: `user-${Date.now()}`, role: 'user', text: clean }
+    const history = messages
+      .filter(message => message.role === 'user' || message.role === 'assistant')
+      .slice(-10)
+      .map(({ role, text }) => ({ role, text }))
+
     setMessages(prev => [...prev, userMessage])
     setInput('')
     setLoading(true)
 
     try {
-      const res = await chatbotApi.sendMessage({ message: clean })
+      const res = await chatbotApi.sendMessage({ message: clean, history })
+      const botPayload = getBotPayload(res)
       setMessages(prev => [
         ...prev,
-        { id: `assistant-${Date.now()}`, role: 'assistant', text: getBotReply(res) },
+        {
+          id: `assistant-${Date.now()}`,
+          role: 'assistant',
+          text: botPayload.text,
+          provider: botPayload.provider,
+          suggestions: botPayload.suggestions,
+        },
       ])
     } catch {
       setMessages(prev => [
@@ -73,11 +85,20 @@ export default function ChatbotWidget() {
     sendMessage()
   }
 
+  const clearChat = () => {
+    setMessages([WELCOME_MESSAGE])
+    setInput('')
+  }
+
+  const lastSuggestions = messages
+    .filter(message => message.role === 'assistant' && Array.isArray(message.suggestions) && message.suggestions.length)
+    .at(-1)?.suggestions ?? STARTER_MESSAGES
+
   return (
     <div className="fixed bottom-5 right-5 z-50">
       {open && (
         <div className="mb-4 flex h-[min(640px,calc(100vh-7rem))] w-[min(380px,calc(100vw-2.5rem))] flex-col overflow-hidden rounded-lg border border-gray-200 bg-white shadow-2xl">
-          <div className="flex items-center justify-between bg-[#172033] px-4 py-3 text-white">
+          <div className="flex items-center justify-between gap-3 bg-[#172033] px-4 py-3 text-white">
             <div className="flex items-center gap-3">
               <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-white/10">
                 <FaRobot />
@@ -87,14 +108,26 @@ export default function ChatbotWidget() {
                 <p className="text-xs text-slate-300">Route and booking help</p>
               </div>
             </div>
-            <button
-              type="button"
-              onClick={() => setOpen(false)}
-              className="flex h-9 w-9 items-center justify-center rounded-lg bg-white/10 transition-colors hover:bg-white/20"
-              aria-label="Close assistant"
-            >
-              <FaTimes />
-            </button>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={clearChat}
+                className="flex h-9 w-9 items-center justify-center rounded-lg bg-white/10 transition-colors hover:bg-white/20"
+                aria-label="Clear assistant chat"
+                title="Clear chat"
+              >
+                <FaTrash />
+              </button>
+              <button
+                type="button"
+                onClick={() => setOpen(false)}
+                className="flex h-9 w-9 items-center justify-center rounded-lg bg-white/10 transition-colors hover:bg-white/20"
+                aria-label="Close assistant"
+                title="Close assistant"
+              >
+                <FaTimes />
+              </button>
+            </div>
           </div>
 
           <div ref={listRef} className="flex-1 overflow-y-auto bg-[#f6f7fb] p-4">
@@ -109,7 +142,12 @@ export default function ChatbotWidget() {
                       ? 'bg-[#d84e55] text-white'
                       : 'border border-gray-200 bg-white text-[#172033]'
                   }`}>
-                    {message.text}
+                    <p className="whitespace-pre-wrap">{message.text}</p>
+                    {message.role === 'assistant' && message.provider && (
+                      <p className="mt-2 text-[10px] font-800 uppercase tracking-wide text-slate-400">
+                        {message.provider === 'OPENAI' ? 'AI assisted' : 'Local help'}
+                      </p>
+                    )}
                   </div>
                 </div>
               ))}
@@ -126,7 +164,7 @@ export default function ChatbotWidget() {
 
           <div className="border-t border-gray-200 bg-white p-3">
             <div className="mb-3 flex gap-2 overflow-x-auto pb-1">
-              {STARTER_MESSAGES.map(starter => (
+              {lastSuggestions.map(starter => (
                 <button
                   key={starter}
                   type="button"
