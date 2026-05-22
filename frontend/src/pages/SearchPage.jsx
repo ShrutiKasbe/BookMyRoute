@@ -7,6 +7,7 @@ import toast from 'react-hot-toast'
 import { searchApi } from '../services/api'
 import { CitySearchInput, JourneyDatePicker } from '../components/common/JourneySearchControls'
 
+
 const FALLBACK_CITIES = ['Pune','Mumbai','Goa','Bangalore','Mysore','Chennai','Hyderabad','Delhi','Jaipur','Kolkata']
 
 const TYPE_COLORS = {
@@ -35,13 +36,14 @@ function parseAmenities(raw) {
 }
 
 function BusCard({ bus, onSelect }) {
+  
   const typeStyle = TYPE_COLORS[bus.busType] || TYPE_COLORS.SEATER
   const amenities = parseAmenities(bus.amenities)
   const depTime = fmtTime(bus.departureTime)
   const arrTime = fmtTime(bus.arrivalTime)
   const duration = calcDuration(bus.durationMins)
   const lowSeats = Number(bus.availableSeats) <= 5
-
+ 
   return (
     <div className="card-hover p-5">
       <div className="grid gap-5 lg:grid-cols-[1.25fr_1fr_auto] lg:items-center">
@@ -91,6 +93,7 @@ function BusCard({ bus, onSelect }) {
           <div>
             <p className="text-xs font-700 text-slate-400">Starting from</p>
             <p className="text-2xl font-800 text-[#d84e55]">Rs {bus.baseFare}</p>
+           
             <p className={`mt-1 text-xs font-800 ${lowSeats ? 'text-red-600' : 'text-emerald-600'}`}>
               {bus.availableSeats} seats left
             </p>

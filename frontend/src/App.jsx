@@ -4,6 +4,7 @@ import { ProtectedRoute } from './components/common/ProtectedRoute'
 import Navbar from './components/common/Navbar'
 import Footer from './components/common/Footer'
 import ChatbotWidget from './components/common/ChatbotWidget'
+import ReviewForm from "./components/common/ReviewForm";
 
 import HomePage           from './pages/HomePage'
 import { LoginPage, RegisterPage } from './pages/AuthPages'
@@ -39,6 +40,10 @@ export default function App() {
             } />
             <Route path="/profile" element={
               <ProtectedRoute><ProfilePage /></ProtectedRoute>
+            } />
+
+            <Route path="/review" element={
+               <ProtectedRoute><ReviewForm /></ProtectedRoute>
             } />
 
             {/* Admin-only */}
