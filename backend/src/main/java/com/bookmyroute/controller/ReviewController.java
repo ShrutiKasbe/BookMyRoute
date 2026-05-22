@@ -25,4 +25,19 @@ public class ReviewController {
     public List<Review> getReviews(@PathVariable Long routeId) {
         return reviewRepository.findByRouteId(routeId);
     }
+
+    @GetMapping("/average/{routeId}")
+    public double getAverageRating(@PathVariable Long routeId) {
+
+        List<Review> reviews = reviewRepository.findByRouteId(routeId);
+
+        if (reviews.isEmpty()) {
+            return 0;
+        }
+
+        return reviews.stream()
+                .mapToInt(Review::getRating)
+                .average()
+                .orElse(0);
+    }
 }
