@@ -37,12 +37,23 @@ const ReviewForm = () => {
 
       <h2>Give Review</h2>
 
-      <input
-        type="number"
-        placeholder="Rating 1 to 5"
-        value={rating}
-        onChange={(e) => setRating(e.target.value)}
-      />
+      <div>
+  <h3>Give Rating</h3>
+
+  {[1, 2, 3, 4, 5].map((star) => (
+    <span
+      key={star}
+      onClick={() => setRating(star)}
+      style={{
+        fontSize: "30px",
+        cursor: "pointer",
+        color: rating >= star ? "gold" : "gray"
+      }}
+    >
+      ★
+    </span>
+  ))}
+</div>
 
       <br /><br />
 
