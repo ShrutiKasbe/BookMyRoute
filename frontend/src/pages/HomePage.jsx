@@ -1,10 +1,12 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { FaBusAlt, FaCalendarAlt, FaHeadset, FaMapMarkerAlt, FaShieldAlt, FaStar, FaTag } from 'react-icons/fa'
+import { FaBusAlt, FaHeadset, FaShieldAlt, FaStar, FaTag } from 'react-icons/fa'
 import { MdSwapHoriz } from 'react-icons/md'
 import { useAuth } from '../context/AuthContext'
+import { searchApi } from '../services/api'
+import { CitySearchInput, JourneyDatePicker } from '../components/common/JourneySearchControls'
 
-const CITIES = ['Pune','Mumbai','Goa','Bangalore','Mysore','Chennai','Hyderabad','Delhi','Jaipur','Kolkata']
+const FALLBACK_CITIES = ['Pune','Mumbai','Goa','Bangalore','Mysore','Chennai','Hyderabad','Delhi','Jaipur','Kolkata']
 
 const SERVICES = [
   { icon: <FaShieldAlt />, title: 'Secure booking', desc: 'Protected checkout and verified operators' },
@@ -28,18 +30,38 @@ const OFFERS = [
 export default function HomePage() {
   const { user } = useAuth()
   const navigate = useNavigate()
+  const [cities, setCities] = useState(FALLBACK_CITIES)
   const [form, setForm] = useState({
     from: 'Pune',
     to: 'Mumbai',
     date: new Date().toISOString().split('T')[0],
   })
 
-  const set = (key) => (e) => setForm(f => ({ ...f, [key]: e.target.value }))
+  useEffect(() => {
+    searchApi.getCities()
+      .then(res => { if (res.data?.data?.length) setCities(res.data.data) })
+      .catch(() => {})
+  }, [])
+
+  const set = (key) => (value) => setForm(f => ({ ...f, [key]: value }))
   const swap = () => setForm(f => ({ ...f, from: f.to, to: f.from }))
+  const searchPath = (params = form) => {
+    const query = new URLSearchParams({
+      origin: params.from,
+      destination: params.to,
+      travelDate: params.date,
+      seats: String(params.passengers || 1),
+      auto: '1',
+    })
+    return `/search?${query.toString()}`
+  }
 
   const handleSearch = (e) => {
     e.preventDefault()
-    navigate(user ? '/search' : '/login', { state: { searchParams: form } })
+    const redirectTo = searchPath(form)
+    navigate(user ? redirectTo : '/login', {
+      state: user ? { searchParams: form, autoSearch: true } : { redirectTo },
+    })
   }
 
   return (
@@ -69,12 +91,14 @@ export default function HomePage() {
           <form onSubmit={handleSearch} className="mt-10 rounded-xl bg-white p-3 shadow-2xl">
             <div className="grid gap-3 lg:grid-cols-[1fr_auto_1fr_0.8fr_auto] lg:items-end">
               <div>
-                <label className="mb-1 flex items-center gap-2 text-xs font-800 uppercase tracking-wide text-slate-500">
-                  <FaMapMarkerAlt className="text-[#d84e55]" /> Leaving from
-                </label>
-                <select value={form.from} onChange={set('from')} className="input-field">
-                  {CITIES.map(city => <option key={city}>{city}</option>)}
-                </select>
+                <CitySearchInput
+                  label="Leaving from"
+                  value={form.from}
+                  onChange={set('from')}
+                  cities={cities}
+                  accent="#d84e55"
+                  placeholder="Search origin city"
+                />
               </div>
 
               <button
@@ -87,25 +111,18 @@ export default function HomePage() {
               </button>
 
               <div>
-                <label className="mb-1 flex items-center gap-2 text-xs font-800 uppercase tracking-wide text-slate-500">
-                  <FaMapMarkerAlt className="text-[#2563eb]" /> Going to
-                </label>
-                <select value={form.to} onChange={set('to')} className="input-field">
-                  {CITIES.map(city => <option key={city}>{city}</option>)}
-                </select>
+                <CitySearchInput
+                  label="Going to"
+                  value={form.to}
+                  onChange={set('to')}
+                  cities={cities}
+                  accent="#2563eb"
+                  placeholder="Search destination city"
+                />
               </div>
 
               <div>
-                <label className="mb-1 flex items-center gap-2 text-xs font-800 uppercase tracking-wide text-slate-500">
-                  <FaCalendarAlt className="text-[#059669]" /> Journey date
-                </label>
-                <input
-                  type="date"
-                  value={form.date}
-                  min={new Date().toISOString().split('T')[0]}
-                  onChange={set('date')}
-                  className="input-field"
-                />
+                <JourneyDatePicker value={form.date} onChange={set('date')} />
               </div>
 
               <button type="submit" className="btn-primary h-12 px-8 text-base">
@@ -115,8 +132,21 @@ export default function HomePage() {
           </form>
 
           <div className="mt-4 flex flex-wrap gap-2 text-sm">
-            {['Today', 'Tomorrow', 'Weekend'].map(label => (
-              <button key={label} className="rounded-full border border-white/20 bg-white/10 px-4 py-2 font-700 text-white hover:bg-white/20">
+            {[
+              ['Today', 0],
+              ['Tomorrow', 1],
+              ['Weekend', 5],
+            ].map(([label, offset]) => (
+              <button
+                key={label}
+                type="button"
+                onClick={() => {
+                  const date = new Date()
+                  date.setDate(date.getDate() + offset)
+                  setForm(prev => ({ ...prev, date: date.toISOString().split('T')[0] }))
+                }}
+                className="rounded-full border border-white/20 bg-white/10 px-4 py-2 font-700 text-white hover:bg-white/20"
+              >
                 {label}
               </button>
             ))}
@@ -174,7 +204,14 @@ export default function HomePage() {
 
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           {POPULAR.map(route => (
-            <Link to={user ? '/search' : '/login'} key={`${route.from}-${route.to}`} className="card-hover block p-5">
+            <Link
+              to={user ? searchPath({ from: route.from, to: route.to, date: form.date }) : '/login'}
+              state={user
+                ? { searchParams: { from: route.from, to: route.to, date: form.date, passengers: 1 }, autoSearch: true }
+                : { redirectTo: searchPath({ from: route.from, to: route.to, date: form.date }) }}
+              key={`${route.from}-${route.to}`}
+              className="card-hover block p-5"
+            >
               <div className="flex items-center justify-between gap-3">
                 <div className="min-w-0">
                   <p className="text-xs font-800 uppercase text-slate-400">From</p>

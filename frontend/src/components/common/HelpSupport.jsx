@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import toast from 'react-hot-toast'
 import {
   FaChevronDown,
@@ -59,6 +59,8 @@ export default function HelpSupport({ mobile = false, onOpen }) {
   const [expandedFaq, setExpandedFaq] = useState(0)
   const [submitting, setSubmitting] = useState(false)
   const [form, setForm] = useState(initialForm)
+  const ticketPanelRef = useRef(null)
+  const subjectRef = useRef(null)
 
   const seededForm = useMemo(() => ({
     ...initialForm,
@@ -100,6 +102,10 @@ export default function HelpSupport({ mobile = false, onOpen }) {
       contactEmail: prev.contactEmail || seededForm.contactEmail,
       contactPhone: prev.contactPhone || seededForm.contactPhone,
     }))
+    window.requestAnimationFrame(() => {
+      ticketPanelRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+      subjectRef.current?.focus({ preventScroll: true })
+    })
   }
 
   const handleChange = (event) => {
@@ -109,18 +115,30 @@ export default function HelpSupport({ mobile = false, onOpen }) {
 
   const submitSupportRequest = async (event) => {
     event.preventDefault()
+    const payload = {
+      ...form,
+      subject: form.subject.trim(),
+      message: form.message.trim(),
+      bookingRef: form.bookingRef.trim(),
+      contactName: form.contactName.trim(),
+      contactEmail: form.contactEmail.trim(),
+      contactPhone: form.contactPhone.trim(),
+    }
+
+    if (!payload.subject || !payload.message || !payload.contactName || !payload.contactEmail) {
+      toast.error('Please fill in the required support details')
+      return
+    }
+
+    if (payload.message.length < 10) {
+      toast.error('Please add a little more detail so support can help')
+      return
+    }
+
     setSubmitting(true)
 
     try {
-      const response = await supportApi.createRequest({
-        ...form,
-        subject: form.subject.trim(),
-        message: form.message.trim(),
-        bookingRef: form.bookingRef.trim(),
-        contactName: form.contactName.trim(),
-        contactEmail: form.contactEmail.trim(),
-        contactPhone: form.contactPhone.trim(),
-      })
+      const response = await supportApi.createRequest(payload)
       const ticketRef = getTicketRef(response)
       toast.success(ticketRef ? `Support ticket ${ticketRef} created` : 'Support request submitted')
       setForm(seededForm)
@@ -253,7 +271,7 @@ export default function HelpSupport({ mobile = false, onOpen }) {
                 </div>
               </div>
 
-              <div className="card p-5">
+              <div ref={ticketPanelRef} className="card scroll-mt-24 p-5">
                 {activePanel === 'home' ? (
                   <div className="flex h-full flex-col justify-center">
                     <span className="flex h-12 w-12 items-center justify-center rounded-lg bg-[#172033] text-xl text-white">
@@ -293,7 +311,7 @@ export default function HelpSupport({ mobile = false, onOpen }) {
                       </label>
                       <label className="block sm:col-span-2">
                         <span className="mb-1 block text-xs font-800 uppercase tracking-wide text-slate-500">Subject</span>
-                        <input name="subject" value={form.subject} onChange={handleChange} className="input-field" required maxLength={120} />
+                        <input ref={subjectRef} name="subject" value={form.subject} onChange={handleChange} className="input-field" required maxLength={120} />
                       </label>
                       <label className="block sm:col-span-2">
                         <span className="mb-1 block text-xs font-800 uppercase tracking-wide text-slate-500">Message</span>

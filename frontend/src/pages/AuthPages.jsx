@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { isAdminRole, useAuth } from '../context/AuthContext'
 import { FaBus, FaEye, FaEyeSlash } from 'react-icons/fa'
 import toast from 'react-hot-toast'
@@ -58,6 +58,7 @@ function getErrorMessage(err, fallback) {
 export function LoginPage() {
   const { adminLogin, login } = useAuth()
   const navigate = useNavigate()
+  const { state } = useLocation()
   const [form, setForm] = useState({ email: '', password: '' })
   const [mode, setMode] = useState('passenger')
   const [loading, setLoading] = useState(false)
@@ -72,7 +73,8 @@ export function LoginPage() {
     try {
       const signIn = isAdminMode ? adminLogin : login
       const user = await signIn(form.email.trim(), form.password)
-      navigate(isAdminRole(user.role) ? '/admin' : '/search', { replace: true })
+      const fallbackPath = isAdminRole(user.role) ? '/admin' : '/search'
+      navigate(state?.redirectTo && !isAdminRole(user.role) ? state.redirectTo : fallbackPath, { replace: true })
     } catch (err) {
       toast.error(getErrorMessage(err, 'Unable to sign in. Please check your credentials.'))
     } finally {

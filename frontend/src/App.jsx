@@ -12,6 +12,7 @@ import BookingPage        from './pages/BookingPage'
 import MyBookingsPage     from './pages/MyBookingsPage'
 import AdminDashboardPage from './pages/AdminDashboardPage'
 import ProfilePage        from './pages/ProfilePage'
+import HelpDeskPage       from './pages/HelpDeskPage'
 
 export default function App() {
   return (
@@ -24,6 +25,7 @@ export default function App() {
             <Route path="/"         element={<HomePage />} />
             <Route path="/login"    element={<LoginPage />} />
             <Route path="/register" element={<RegisterPage />} />
+            <Route path="/help"     element={<HelpDeskPage />} />
 
             {/* Passenger-protected */}
             <Route path="/search" element={

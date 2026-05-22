@@ -6,6 +6,8 @@ const AuthContext = createContext(null)
 
 const TOKEN_KEY = 'bmr_token'
 const USER_KEY  = 'bmr_user'
+const SESSION_EXPIRES_KEY = 'bmr_session_expires_at'
+const SESSION_TIMEOUT_MS = 30 * 60 * 1000
 
 const api = axios.create({
   baseURL: '/api',
@@ -81,6 +83,21 @@ function readSavedUser() {
   }
 }
 
+function setSessionExpiry() {
+  localStorage.setItem(SESSION_EXPIRES_KEY, String(Date.now() + SESSION_TIMEOUT_MS))
+}
+
+function clearSessionStorage() {
+  localStorage.removeItem(TOKEN_KEY)
+  localStorage.removeItem(USER_KEY)
+  localStorage.removeItem(SESSION_EXPIRES_KEY)
+}
+
+function isSessionExpired() {
+  const expiresAt = Number(localStorage.getItem(SESSION_EXPIRES_KEY) || 0)
+  return Boolean(expiresAt && Date.now() > expiresAt)
+}
+
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null)
   const [loading, setLoading] = useState(true)
@@ -91,9 +108,17 @@ export function AuthProvider({ children }) {
       const saved = readSavedUser()
 
       if (token && saved) {
+        if (isSessionExpired()) {
+          clearSessionStorage()
+          setUser(null)
+          setLoading(false)
+          return
+        }
+
         try {
           const normalized = buildUser(saved)
           setUser(normalized)
+          setSessionExpiry()
           localStorage.setItem(USER_KEY, JSON.stringify(normalized))
 
           const res = await api.get('/auth/me', {
@@ -106,8 +131,7 @@ export function AuthProvider({ children }) {
             localStorage.setItem(USER_KEY, JSON.stringify(updated))
           }
         } catch {
-          localStorage.removeItem(TOKEN_KEY)
-          localStorage.removeItem(USER_KEY)
+          clearSessionStorage()
           setUser(null)
         }
       }
@@ -129,6 +153,7 @@ export function AuthProvider({ children }) {
     const userObj = buildUser(getUserPayload(data), { email })
     localStorage.setItem(TOKEN_KEY, token)
     localStorage.setItem(USER_KEY, JSON.stringify(userObj))
+    setSessionExpiry()
     setUser(userObj)
     toast.success(`Welcome back, ${userObj.name}!`)
     return userObj
@@ -153,16 +178,16 @@ export function AuthProvider({ children }) {
     const userObj = buildUser(getUserPayload(data), { name: payload.name, email: payload.email })
     localStorage.setItem(TOKEN_KEY, token)
     localStorage.setItem(USER_KEY, JSON.stringify(userObj))
+    setSessionExpiry()
     setUser(userObj)
     toast.success("Account created! Let's roll")
     return userObj
   }
 
-  const logout = () => {
-    localStorage.removeItem(TOKEN_KEY)
-    localStorage.removeItem(USER_KEY)
+  const logout = ({ expired = false } = {}) => {
+    clearSessionStorage()
     setUser(null)
-    toast.success('Logged out successfully')
+    toast[expired ? 'error' : 'success'](expired ? 'Session expired. Please sign in again.' : 'Logged out successfully')
   }
 
   const updateUser = (data) => {
@@ -171,6 +196,26 @@ export function AuthProvider({ children }) {
     localStorage.setItem(USER_KEY, JSON.stringify(updated))
     return updated
   }
+
+  useEffect(() => {
+    if (!user) return undefined
+
+    const refreshSession = () => {
+      if (localStorage.getItem(TOKEN_KEY)) setSessionExpiry()
+    }
+
+    const activityEvents = ['click', 'keydown', 'mousemove', 'scroll', 'touchstart']
+    activityEvents.forEach(event => window.addEventListener(event, refreshSession, { passive: true }))
+
+    const interval = window.setInterval(() => {
+      if (isSessionExpired()) logout({ expired: true })
+    }, 30000)
+
+    return () => {
+      activityEvents.forEach(event => window.removeEventListener(event, refreshSession))
+      window.clearInterval(interval)
+    }
+  }, [user])
 
   return (
     <AuthContext.Provider value={{ user, loading, login, adminLogin, register, logout, updateUser, isAdmin: isAdminRole(user?.role) }}>

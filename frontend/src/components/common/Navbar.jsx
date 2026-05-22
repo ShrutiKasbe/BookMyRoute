@@ -1,8 +1,7 @@
 import { Link, useLocation, useNavigate } from 'react-router-dom'
-import { FaBars, FaBusAlt, FaIdBadge, FaSignOutAlt, FaTimes, FaUserCircle } from 'react-icons/fa'
+import { FaBars, FaBusAlt, FaHeadset, FaIdBadge, FaSignOutAlt, FaTimes, FaUserCircle } from 'react-icons/fa'
 import { useState } from 'react'
 import { useAuth } from '../../context/AuthContext'
-import HelpSupport from './HelpSupport'
 
 export default function Navbar() {
   const { user, logout, isAdmin } = useAuth()
@@ -45,7 +44,17 @@ export default function Navbar() {
         </Link>
 
         <div className="hidden items-center gap-1 md:flex">
-          <HelpSupport />
+          <Link
+            to="/help"
+            className={`flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-700 transition-colors ${
+              pathname === '/help'
+                ? 'bg-[#d84e55]/10 text-[#d84e55]'
+                : 'text-slate-600 hover:bg-slate-100 hover:text-[#172033]'
+            }`}
+          >
+            <FaHeadset className="text-[#d84e55]" />
+            Help desk
+          </Link>
           {user ? (
             <>
               {navLink('/search', 'Search buses')}
@@ -104,7 +113,17 @@ export default function Navbar() {
       {open && (
         <div className="border-t border-gray-100 bg-white px-4 py-4 md:hidden">
           <div className="flex flex-col gap-2">
-            <HelpSupport mobile />
+            <Link
+              to="/help"
+              onClick={() => setOpen(false)}
+              className={`flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-700 ${
+                pathname === '/help'
+                  ? 'bg-[#d84e55]/10 text-[#d84e55]'
+                  : 'text-[#172033] hover:bg-slate-100'
+              }`}
+            >
+              <FaHeadset /> Help desk
+            </Link>
             {user ? (
               <>
                 {navLink('/search', 'Search buses', true)}

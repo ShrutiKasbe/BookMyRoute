@@ -1,10 +1,11 @@
-import { useState, useEffect } from 'react'
-import { useLocation, useNavigate } from 'react-router-dom'
-import { FaBolt, FaBusAlt, FaCalendarAlt, FaFilter, FaMapMarkerAlt, FaUserFriends, FaWifi } from 'react-icons/fa'
+import { useState, useEffect, useRef } from 'react'
+import { useLocation, useNavigate, useSearchParams } from 'react-router-dom'
+import { FaBolt, FaBusAlt, FaFilter, FaUserFriends, FaWifi } from 'react-icons/fa'
 import { MdSwapHoriz } from 'react-icons/md'
 import { format, parseISO } from 'date-fns'
 import toast from 'react-hot-toast'
 import { searchApi } from '../services/api'
+import { CitySearchInput, JourneyDatePicker } from '../components/common/JourneySearchControls'
 
 const FALLBACK_CITIES = ['Pune','Mumbai','Goa','Bangalore','Mysore','Chennai','Hyderabad','Delhi','Jaipur','Kolkata']
 
@@ -106,12 +107,14 @@ function BusCard({ bus, onSelect }) {
 export default function SearchPage() {
   const navigate = useNavigate()
   const { state } = useLocation()
+  const [searchParams] = useSearchParams()
+  const autoSearched = useRef(false)
   const [cities, setCities] = useState(FALLBACK_CITIES)
   const [form, setForm] = useState({
-    from: state?.searchParams?.from || 'Pune',
-    to: state?.searchParams?.to || 'Mumbai',
-    date: state?.searchParams?.date || new Date().toISOString().split('T')[0],
-    passengers: state?.searchParams?.passengers || 1,
+    from: state?.searchParams?.from || searchParams.get('origin') || 'Pune',
+    to: state?.searchParams?.to || searchParams.get('destination') || 'Mumbai',
+    date: state?.searchParams?.date || searchParams.get('travelDate') || new Date().toISOString().split('T')[0],
+    passengers: state?.searchParams?.passengers || searchParams.get('seats') || 1,
   })
   const [results, setResults] = useState(null)
   const [loading, setLoading] = useState(false)
@@ -123,19 +126,21 @@ export default function SearchPage() {
       .catch(() => {})
   }, [])
 
-  const set = (k) => (e) => setForm(f => ({ ...f, [k]: e.target.value }))
+  const set = (k) => (value) => setForm(f => ({ ...f, [k]: value }))
   const swap = () => setForm(f => ({ ...f, from: f.to, to: f.from }))
 
-  const handleSearch = async (e) => {
-    e.preventDefault()
-    if (form.from === form.to) { toast.error('Origin and destination cannot be the same'); return }
+  const performSearch = async (params) => {
+    if (params.from.trim().toLowerCase() === params.to.trim().toLowerCase()) {
+      toast.error('Origin and destination cannot be the same')
+      return
+    }
     setLoading(true)
     try {
       const { data } = await searchApi.searchBuses({
-        origin: form.from,
-        destination: form.to,
-        travelDate: form.date,
-        seats: Number(form.passengers),
+        origin: params.from.trim(),
+        destination: params.to.trim(),
+        travelDate: params.date,
+        seats: Number(params.passengers),
       })
       const list = data?.data ?? []
       setResults(list)
@@ -146,6 +151,23 @@ export default function SearchPage() {
       setLoading(false)
     }
   }
+
+  const handleSearch = async (e) => {
+    e.preventDefault()
+    await performSearch(form)
+  }
+
+  useEffect(() => {
+    const shouldAutoSearch = state?.autoSearch || searchParams.get('auto') === '1'
+    if (!shouldAutoSearch || autoSearched.current) return
+    autoSearched.current = true
+    performSearch({
+      from: state?.searchParams?.from || searchParams.get('origin') || form.from,
+      to: state?.searchParams?.to || searchParams.get('destination') || form.to,
+      date: state?.searchParams?.date || searchParams.get('travelDate') || form.date,
+      passengers: state?.searchParams?.passengers || searchParams.get('seats') || form.passengers,
+    })
+  }, [])
 
   const sorted = results ? [...results].sort((a, b) =>
     sortBy === 'price' ? a.baseFare - b.baseFare :
@@ -163,12 +185,14 @@ export default function SearchPage() {
           <form onSubmit={handleSearch} className="mt-5 rounded-xl border border-gray-200 bg-white p-3 shadow-sm">
             <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-[1fr_auto_1fr_0.85fr_0.65fr_auto] xl:items-end">
               <div>
-                <label className="mb-1 flex items-center gap-2 text-xs font-800 uppercase text-slate-500">
-                  <FaMapMarkerAlt className="text-[#d84e55]" /> From
-                </label>
-                <select value={form.from} onChange={set('from')} className="input-field">
-                  {cities.map(c => <option key={c}>{c}</option>)}
-                </select>
+                <CitySearchInput
+                  label="From"
+                  value={form.from}
+                  onChange={set('from')}
+                  cities={cities}
+                  accent="#d84e55"
+                  placeholder="Search origin city"
+                />
               </div>
 
               <button
@@ -181,28 +205,25 @@ export default function SearchPage() {
               </button>
 
               <div>
-                <label className="mb-1 flex items-center gap-2 text-xs font-800 uppercase text-slate-500">
-                  <FaMapMarkerAlt className="text-[#2563eb]" /> To
-                </label>
-                <select value={form.to} onChange={set('to')} className="input-field">
-                  {cities.map(c => <option key={c}>{c}</option>)}
-                </select>
+                <CitySearchInput
+                  label="To"
+                  value={form.to}
+                  onChange={set('to')}
+                  cities={cities}
+                  accent="#2563eb"
+                  placeholder="Search destination city"
+                />
               </div>
 
               <div>
-                <label className="mb-1 flex items-center gap-2 text-xs font-800 uppercase text-slate-500">
-                  <FaCalendarAlt className="text-[#059669]" /> Date
-                </label>
-                <input type="date" value={form.date} onChange={set('date')}
-                  min={new Date().toISOString().split('T')[0]}
-                  className="input-field" />
+                <JourneyDatePicker value={form.date} onChange={set('date')} label="Date" />
               </div>
 
               <div>
                 <label className="mb-1 flex items-center gap-2 text-xs font-800 uppercase text-slate-500">
                   <FaUserFriends className="text-[#f59e0b]" /> Riders
                 </label>
-                <select value={form.passengers} onChange={set('passengers')} className="input-field">
+                <select value={form.passengers} onChange={event => set('passengers')(event.target.value)} className="input-field">
                   {[1,2,3,4,5,6].map(n => <option key={n} value={n}>{n}</option>)}
                 </select>
               </div>

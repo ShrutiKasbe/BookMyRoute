@@ -2,6 +2,8 @@ import axios from 'axios'
 import toast from 'react-hot-toast'
 
 const TOKEN_KEY = 'bmr_token'
+const USER_KEY = 'bmr_user'
+const SESSION_EXPIRES_KEY = 'bmr_session_expires_at'
 
 const api = axios.create({
   baseURL: '/api',
@@ -11,7 +13,16 @@ const api = axios.create({
 
 // ── Request interceptor — attach JWT ──────────────────────────
 api.interceptors.request.use(config => {
-  const token = localStorage.getItem(TOKEN_KEY)
+  const expiresAt = Number(localStorage.getItem(SESSION_EXPIRES_KEY) || 0)
+  if (!config.skipAuth && expiresAt && Date.now() > expiresAt) {
+    localStorage.removeItem(TOKEN_KEY)
+    localStorage.removeItem(USER_KEY)
+    localStorage.removeItem(SESSION_EXPIRES_KEY)
+    window.location.href = '/login'
+    return Promise.reject(new axios.CanceledError('Session expired'))
+  }
+
+  const token = config.skipAuth ? null : localStorage.getItem(TOKEN_KEY)
   if (token) config.headers.Authorization = `Bearer ${token}`
   return config
 })
@@ -20,12 +31,24 @@ api.interceptors.request.use(config => {
 api.interceptors.response.use(
   (res) => res,
   (err) => {
+    if (axios.isCancel(err)) return Promise.reject(err)
     const msg = err.response?.data?.message || 'Something went wrong'
     if (err.response?.status === 401) {
+      if (err.config?.allowAnonymousFallback && !err.config?._anonymousRetry) {
+        const retryConfig = {
+          ...err.config,
+          _anonymousRetry: true,
+          skipAuth: true,
+          headers: { ...err.config.headers },
+        }
+        delete retryConfig.headers.Authorization
+        return api.request(retryConfig)
+      }
       localStorage.removeItem(TOKEN_KEY)
-      localStorage.removeItem('bmr_user')
+      localStorage.removeItem(USER_KEY)
+      localStorage.removeItem(SESSION_EXPIRES_KEY)
       window.location.href = '/login'
-    } else if (err.response?.status !== 404) {
+    } else if (err.response?.status !== 404 && !err.config?.silentError) {
       toast.error(msg)
     }
     return Promise.reject(err)
@@ -87,11 +110,17 @@ export const bookingApi = {
 }
 
 export const chatbotApi = {
-  sendMessage: (data) => api.post('/chatbot/message', data),
+  sendMessage: (data) => api.post('/chatbot/message', data, {
+    allowAnonymousFallback: true,
+    silentError: true,
+  }),
 }
 
 export const supportApi = {
-  createRequest: (data) => api.post('/support/requests', data),
+  createRequest: (data) => api.post('/support/requests', data, {
+    allowAnonymousFallback: true,
+    silentError: true,
+  }),
   getMyRequests: () => api.get('/support/requests/my'),
 }
 
