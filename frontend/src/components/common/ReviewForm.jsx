@@ -3,7 +3,7 @@ import axios from "axios";
 
 const ReviewForm = () => {
 
-  const [rating, setRating] = useState("");
+  const [rating, setRating] = useState(0);
   const [comment, setComment] = useState("");
 
   const submitReview = async () => {
@@ -17,10 +17,17 @@ const ReviewForm = () => {
 
     try {
 
-      await axios.post(
-        "http://localhost:8080/api/reviews",
-        reviewData
-      );
+      const token = localStorage.getItem("token");
+
+await axios.post(
+  "http://localhost:8080/api/reviews",
+  reviewData,
+  {
+    headers: {
+      Authorization: `Bearer ${token}`
+    }
+  }
+);
 
       alert("Review Added Successfully");
 

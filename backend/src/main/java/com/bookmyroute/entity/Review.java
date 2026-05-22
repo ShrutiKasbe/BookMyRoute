@@ -2,8 +2,10 @@ package com.bookmyroute.entity;
 
 import jakarta.persistence.*;
 import java.time.LocalDateTime;
+import jakarta.persistence.Table;
 
 @Entity
+@Table(name = "reviews")
 public class Review {
 
     @Id
