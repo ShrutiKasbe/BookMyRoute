@@ -1,10 +1,14 @@
 package com.bookmyroute.controller;
 
 import com.bookmyroute.dto.request.BookingRequest;
+import com.bookmyroute.dto.request.RouteReviewRequest;
+import com.bookmyroute.dto.request.RouteReviewUpdateRequest;
 import com.bookmyroute.dto.response.ApiResponse;
 import com.bookmyroute.dto.response.BookingResponse;
+import com.bookmyroute.dto.response.RouteReviewResponse;
 import com.bookmyroute.service.BookingPdfService;
 import com.bookmyroute.service.BookingService;
+import com.bookmyroute.service.RouteReviewService;
 import jakarta.validation.Valid;
 import org.springframework.http.ContentDisposition;
 import org.springframework.http.HttpHeaders;
@@ -24,10 +28,14 @@ public class BookingController {
 
     private final BookingService bookingService;
     private final BookingPdfService bookingPdfService;
+    private final RouteReviewService routeReviewService;
 
-    public BookingController(BookingService bookingService, BookingPdfService bookingPdfService) {
+    public BookingController(BookingService bookingService,
+                             BookingPdfService bookingPdfService,
+                             RouteReviewService routeReviewService) {
         this.bookingService = bookingService;
         this.bookingPdfService = bookingPdfService;
+        this.routeReviewService = routeReviewService;
     }
 
     @PostMapping
@@ -83,6 +91,42 @@ public class BookingController {
                 : "Booking cancelled and refund initiated. Cancellation email was not sent: "
                         + response.getNotificationEmailMessage();
         return ResponseEntity.ok(ApiResponse.success(response, message));
+    }
+
+    @PostMapping("/reviews")
+    public ResponseEntity<ApiResponse<RouteReviewResponse>> submitReview(
+            @Valid @RequestBody RouteReviewRequest request,
+            @AuthenticationPrincipal UserDetails userDetails) {
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(ApiResponse.success(
+                        routeReviewService.submitReview(request, userDetails.getUsername()),
+                        "Review submitted"));
+    }
+
+    @PutMapping("/reviews/{reviewId}")
+    public ResponseEntity<ApiResponse<RouteReviewResponse>> updateReview(
+            @PathVariable Long reviewId,
+            @Valid @RequestBody RouteReviewUpdateRequest request,
+            @AuthenticationPrincipal UserDetails userDetails) {
+        return ResponseEntity.ok(ApiResponse.success(
+                routeReviewService.updateReview(reviewId, request, userDetails.getUsername()),
+                "Review updated"));
+    }
+
+    @DeleteMapping("/reviews/{reviewId}")
+    public ResponseEntity<ApiResponse<Void>> deleteReview(
+            @PathVariable Long reviewId,
+            @AuthenticationPrincipal UserDetails userDetails) {
+        routeReviewService.deleteReview(reviewId, userDetails.getUsername());
+        return ResponseEntity.ok(ApiResponse.success(null, "Review deleted"));
+    }
+
+    @GetMapping("/reviews/booking/{bookingId}")
+    public ResponseEntity<ApiResponse<RouteReviewResponse>> getReviewForBooking(
+            @PathVariable Long bookingId,
+            @AuthenticationPrincipal UserDetails userDetails) {
+        return ResponseEntity.ok(ApiResponse.success(
+                routeReviewService.getReviewForBooking(bookingId, userDetails.getUsername())));
     }
 
     @GetMapping
