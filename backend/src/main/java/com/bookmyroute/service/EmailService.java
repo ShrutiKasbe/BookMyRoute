@@ -126,6 +126,39 @@ public class EmailService {
         }
     }
 
+    public EmailDeliveryResponse sendSupportReply(String to, String contactName, String ticketRef, String subject, String reply) {
+        try {
+            EmailDeliveryResponse readiness = validateMailSettings(to);
+            if (!readiness.isConfigured()) {
+                logDelivery("support reply", ticketRef, readiness);
+                return readiness;
+            }
+            String safeName = StringUtils.hasText(contactName) ? contactName : "there";
+            String html = """
+                    <html>
+                        <body style="font-family:Arial, Helvetica, sans-serif; color:#172033; line-height:1.6;">
+                            <h2 style="color:#d84e55;">BookMyRoute support reply</h2>
+                            <p>Hello %s,</p>
+                            <p>Our support team replied to your request <strong>%s</strong>.</p>
+                            <div style="border:1px solid #e5e7eb; border-radius:8px; padding:16px; background:#f8fafc;">
+                                <p style="margin-top:0;"><strong>Subject:</strong> %s</p>
+                                <p style="white-space:pre-wrap; margin-bottom:0;">%s</p>
+                            </div>
+                            <p>If you still need help, reply by raising another help desk request with this ticket reference.</p>
+                            <p>BookMyRoute Support</p>
+                        </body>
+                    </html>
+                    """.formatted(escapeHtml(safeName), escapeHtml(ticketRef), escapeHtml(subject), escapeHtml(reply));
+            EmailDeliveryResponse delivery = sendHtmlEmail(to, "BookMyRoute support reply - " + ticketRef, html);
+            logDelivery("support reply", ticketRef, delivery);
+            return delivery;
+        } catch (Exception ex) {
+            log.warn("Support reply email failed before send for {}: {}", ticketRef, ex.getMessage(), ex);
+            return EmailDeliveryResponse.failed(to, isConfigured(resolveFromAddress()),
+                    "Email notification failed: " + ex.getMessage());
+        }
+    }
+
     private Context createBookingContext(Booking booking) {
         Context context = new Context();
         context.setVariable("booking", booking);
@@ -220,6 +253,18 @@ public class EmailService {
                     + mailUsername + ", not the Gmail account password or admin password.";
         }
         return "Email send failed: " + (StringUtils.hasText(message) ? message : ex.getClass().getSimpleName());
+    }
+
+    private String escapeHtml(String value) {
+        if (value == null) {
+            return "";
+        }
+        return value
+                .replace("&", "&amp;")
+                .replace("<", "&lt;")
+                .replace(">", "&gt;")
+                .replace("\"", "&quot;")
+                .replace("'", "&#39;");
     }
 
     private void logDelivery(String type, String reference, EmailDeliveryResponse delivery) {

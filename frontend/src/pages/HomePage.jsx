@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { FaBusAlt, FaHeadset, FaShieldAlt, FaStar, FaTag } from 'react-icons/fa'
 import { MdSwapHoriz } from 'react-icons/md'
+import { format } from 'date-fns'
 import { useAuth } from '../context/AuthContext'
 import { searchApi } from '../services/api'
 import { CitySearchInput, JourneyDatePicker } from '../components/common/JourneySearchControls'
@@ -34,7 +35,7 @@ export default function HomePage() {
   const [form, setForm] = useState({
     from: 'Pune',
     to: 'Mumbai',
-    date: new Date().toISOString().split('T')[0],
+    date: format(new Date(), 'yyyy-MM-dd'),
   })
 
   useEffect(() => {
@@ -143,7 +144,7 @@ export default function HomePage() {
                 onClick={() => {
                   const date = new Date()
                   date.setDate(date.getDate() + offset)
-                  setForm(prev => ({ ...prev, date: date.toISOString().split('T')[0] }))
+                  setForm(prev => ({ ...prev, date: format(date, 'yyyy-MM-dd') }))
                 }}
                 className="rounded-full border border-white/20 bg-white/10 px-4 py-2 font-700 text-white hover:bg-white/20"
               >

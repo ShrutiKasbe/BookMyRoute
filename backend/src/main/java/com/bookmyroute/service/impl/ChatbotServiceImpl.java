@@ -46,7 +46,7 @@ public class ChatbotServiceImpl implements ChatbotService {
                               UserRepository userRepository,
                               RestClient.Builder restClientBuilder,
                               @Value("${openai.api.key:}") String apiKey,
-                              @Value("${openai.model:gpt-5.4-mini}") String model) {
+                              @Value("${openai.model:gpt-4o-mini}") String model) {
         this.routeRepository = routeRepository;
         this.scheduleRepository = scheduleRepository;
         this.bookingRepository = bookingRepository;
@@ -101,7 +101,7 @@ public class ChatbotServiceImpl implements ChatbotService {
                 Never invent booking records, prices, refunds, seat counts, or schedules.
                 If the user asks to make, cancel, or modify a booking, explain the exact app steps instead of claiming you performed the action.
                 Keep answers friendly, practical, and under 130 words.
-                Refuse unrelated questions briefly and redirect to BookMyRoute help.
+                For unrelated questions, answer briefly if harmless, then connect the answer back to BookMyRoute when useful.
                 """;
 
         String inputText = "User email: " + (StringUtils.hasText(userEmail) ? userEmail : "guest or unknown")
@@ -201,11 +201,21 @@ public class ChatbotServiceImpl implements ChatbotService {
             return "I can help with route, schedule, fare, and seat questions. AI is not configured yet, but here is the latest booking context I can see:\n\n" + context;
         }
 
+        if (lowerMessage.contains("complaint") || lowerMessage.contains("help desk") || lowerMessage.contains("support")
+                || lowerMessage.contains("issue") || lowerMessage.contains("problem")) {
+            return "For any issue, open Help desk from the navbar, choose the closest issue type, add your booking reference if you have one, and submit it. The admin team can reply by email to the address you provide.";
+        }
+
+        if (lowerMessage.contains("login") || lowerMessage.contains("sign in") || lowerMessage.contains("password")
+                || lowerMessage.contains("account")) {
+            return "Use Login for an existing account or Register for a new one. If you are inactive for a while, BookMyRoute signs you out automatically for safety. Admins should use the Admin mode on the login form.";
+        }
+
         if (lowerMessage.contains("pdf") || lowerMessage.contains("download")) {
             return "You can download a booking confirmation PDF right after payment using Ticket PDF, or later from My bookings using Download ticket.";
         }
 
-        if (lowerMessage.contains("cancel") || lowerMessage.contains("refund")) {
+        if (lowerMessage.contains("cancel") || lowerMessage.contains("refund") || lowerMessage.contains("deducted")) {
             return "Open My bookings, find the trip, and choose Cancel booking. Eligible confirmed or pending bookings can be cancelled; completed bookings cannot be cancelled.";
         }
 
@@ -221,7 +231,7 @@ public class ChatbotServiceImpl implements ChatbotService {
             return "You are signed in as " + userEmail + ". Open My bookings to see your booking references, status, cancellation option, and ticket PDF download.";
         }
 
-        return "I can help with BookMyRoute questions like route availability, bus timings, fares, seats, booking steps, payments, and ticket information. Please ask with your origin, destination, and travel date for the quickest help.";
+        return "I can help with routes, bus timings, fares, seats, booking steps, payments, cancellations, refunds, ticket PDFs, login, and help desk complaints. Tell me what you are trying to do and include your route, date, or booking reference if you have one.";
     }
 
     private String extractOutputText(JsonNode response) {
@@ -280,10 +290,13 @@ public class ChatbotServiceImpl implements ChatbotService {
         String lowerMessage = message.toLowerCase();
 
         if (lowerMessage.contains("cancel") || lowerMessage.contains("refund")) {
-            return List.of("Show my bookings", "Download ticket PDF", "Book another trip");
+            return List.of("Show my bookings", "Raise complaint", "Download ticket PDF");
         }
         if (lowerMessage.contains("pdf") || lowerMessage.contains("ticket")) {
-            return List.of("Where is My bookings?", "How do I cancel?", "Search buses");
+            return List.of("Where is My bookings?", "Raise complaint", "How do I cancel?");
+        }
+        if (lowerMessage.contains("complaint") || lowerMessage.contains("support") || lowerMessage.contains("issue")) {
+            return List.of("Raise complaint", "Contact support", "Payment deducted");
         }
         if (lowerMessage.contains("route") || lowerMessage.contains("bus") || lowerMessage.contains("seat")) {
             return List.of("Available buses today", "How do I book?", "Fare details");

@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { FaBus, FaPaperPlane, FaRobot, FaTimes, FaTrash } from 'react-icons/fa'
 import { chatbotApi } from '../../services/api'
 
@@ -25,6 +26,7 @@ function getBotPayload(res) {
 }
 
 export default function ChatbotWidget() {
+  const navigate = useNavigate()
   const [open, setOpen] = useState(false)
   const [messages, setMessages] = useState([WELCOME_MESSAGE])
   const [input, setInput] = useState('')
@@ -88,6 +90,26 @@ export default function ChatbotWidget() {
   const clearChat = () => {
     setMessages([WELCOME_MESSAGE])
     setInput('')
+  }
+
+  const handleSuggestion = (suggestion) => {
+    const clean = suggestion.toLowerCase()
+    if (clean.includes('complaint') || clean.includes('support') || clean.includes('contact')) {
+      setOpen(false)
+      navigate('/help')
+      return
+    }
+    if (clean.includes('booking')) {
+      setOpen(false)
+      navigate('/my-bookings')
+      return
+    }
+    if (clean.includes('search') || clean.includes('bus')) {
+      setOpen(false)
+      navigate('/search')
+      return
+    }
+    sendMessage(suggestion)
   }
 
   const lastSuggestions = messages
@@ -168,7 +190,7 @@ export default function ChatbotWidget() {
                 <button
                   key={starter}
                   type="button"
-                  onClick={() => sendMessage(starter)}
+                  onClick={() => handleSuggestion(starter)}
                   disabled={loading}
                   className="shrink-0 rounded-full border border-gray-200 bg-white px-3 py-1.5 text-xs font-700 text-slate-600 transition-colors hover:border-[#d84e55] hover:text-[#d84e55] disabled:opacity-60"
                 >

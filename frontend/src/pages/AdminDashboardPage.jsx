@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { FaBus, FaEnvelope, FaPlus, FaRoute, FaTicketAlt } from 'react-icons/fa'
+import { FaBus, FaEnvelope, FaLifeRing, FaPaperPlane, FaPlus, FaReply, FaRoute, FaTicketAlt } from 'react-icons/fa'
 import { MdDashboard, MdSchedule } from 'react-icons/md'
 import { adminApi } from '../services/api'
 import toast from 'react-hot-toast'
@@ -64,10 +64,13 @@ export default function AdminDashboardPage() {
   const [buses, setBuses] = useState([])
   const [routes, setRoutes] = useState([])
   const [bookings, setBookings] = useState([])
+  const [supportRequests, setSupportRequests] = useState([])
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [testEmail, setTestEmail] = useState('')
   const [sendingEmail, setSendingEmail] = useState(false)
+  const [replyForms, setReplyForms] = useState({})
+  const [replyingRef, setReplyingRef] = useState('')
 
   const [busForm, setBusForm] = useState({
     busNumber: '',
@@ -96,10 +99,11 @@ export default function AdminDashboardPage() {
   const loadAdminData = async () => {
     setLoading(true)
     try {
-      const [busRes, routeRes, bookingRes] = await Promise.all([
+      const [busRes, routeRes, bookingRes, supportRes] = await Promise.all([
         adminApi.getBuses(),
         adminApi.getRoutes(),
         adminApi.getAllBookings(),
+        adminApi.getSupportRequests(),
       ])
       const nextBuses = unwrap(busRes)
       const nextRoutes = unwrap(routeRes)
@@ -107,6 +111,7 @@ export default function AdminDashboardPage() {
       setBuses(nextBuses)
       setRoutes(nextRoutes)
       setBookings(unwrap(bookingRes))
+      setSupportRequests(unwrap(supportRes))
       setScheduleForm(f => ({
         ...f,
         busId: f.busId || String(getBusId(firstActiveBus) || ''),
@@ -131,12 +136,14 @@ export default function AdminDashboardPage() {
     { label: 'Available buses', value: activeBuses.length, icon: <FaBus />, color: 'text-[#d84e55]', bg: 'bg-[#d84e55]/10' },
     { label: 'Routes', value: routes.length, icon: <FaRoute />, color: 'text-[#2563eb]', bg: 'bg-[#2563eb]/10' },
     { label: 'User bookings', value: bookings.length, icon: <FaTicketAlt />, color: 'text-[#059669]', bg: 'bg-[#059669]/10' },
+    { label: 'Support tickets', value: supportRequests.length, icon: <FaLifeRing />, color: 'text-[#7c3aed]', bg: 'bg-[#7c3aed]/10' },
     { label: 'Revenue', value: `Rs ${bookings.reduce((sum, b) => sum + Number(b.totalAmount || 0), 0).toLocaleString('en-IN')}`, icon: <MdDashboard />, color: 'text-[#f59e0b]', bg: 'bg-[#f59e0b]/10' },
   ]
 
   const updateBusForm = key => e => setBusForm(f => ({ ...f, [key]: e.target.value }))
   const updateRouteForm = key => e => setRouteForm(f => ({ ...f, [key]: e.target.value }))
   const updateScheduleForm = key => e => setScheduleForm(f => ({ ...f, [key]: e.target.value }))
+  const updateReplyForm = ticketRef => e => setReplyForms(forms => ({ ...forms, [ticketRef]: e.target.value }))
 
   const createBus = async (e) => {
     e.preventDefault()
@@ -234,6 +241,29 @@ export default function AdminDashboardPage() {
     }
   }
 
+  const replyToSupportRequest = async (e, ticketRef) => {
+    e.preventDefault()
+    const reply = (replyForms[ticketRef] || '').trim()
+    if (reply.length < 5) {
+      toast.error('Reply must be at least 5 characters')
+      return
+    }
+    setReplyingRef(ticketRef)
+    try {
+      const { data } = await adminApi.replySupportRequest(ticketRef, reply)
+      const updated = data?.data
+      setSupportRequests(requests => requests.map(item => item.ticketRef === ticketRef ? updated : item))
+      setReplyForms(forms => ({ ...forms, [ticketRef]: '' }))
+      if (updated?.replyEmailSent) {
+        toast.success('Reply sent to user by email')
+      } else {
+        toast.error(updated?.replyEmailMessage || 'Reply saved, but email was not sent')
+      }
+    } finally {
+      setReplyingRef('')
+    }
+  }
+
   return (
     <div className="page-shell">
       <div className="border-b border-gray-200 bg-white">
@@ -250,6 +280,7 @@ export default function AdminDashboardPage() {
           <Tab active={tab === 'routes'} onClick={() => setTab('routes')} icon={<FaRoute />} label="Routes" />
           <Tab active={tab === 'schedules'} onClick={() => setTab('schedules')} icon={<MdSchedule />} label="Schedules" />
           <Tab active={tab === 'bookings'} onClick={() => setTab('bookings')} icon={<FaTicketAlt />} label="User bookings" />
+          <Tab active={tab === 'support'} onClick={() => setTab('support')} icon={<FaLifeRing />} label="Complaints" />
         </div>
 
         {loading ? (
@@ -515,6 +546,89 @@ export default function AdminDashboardPage() {
                     </tbody>
                   </table>
                 </div>
+              </div>
+            )}
+
+            {tab === 'support' && (
+              <div className="grid gap-4">
+                <div className="card p-5">
+                  <h2 className="flex items-center gap-2 text-lg font-800 text-[#172033]">
+                    <FaLifeRing className="text-[#d84e55]" /> Help desk complaints
+                  </h2>
+                  <p className="mt-1 text-sm text-slate-500">
+                    Review user complaints and send email replies directly from the admin panel.
+                  </p>
+                </div>
+
+                {supportRequests.length === 0 ? (
+                  <div className="rounded-lg border border-dashed border-gray-300 bg-white p-10 text-center text-slate-500">
+                    No help desk complaints yet.
+                  </div>
+                ) : (
+                  supportRequests.map(request => (
+                    <section key={request.ticketRef} className="card overflow-hidden">
+                      <div className="grid gap-4 border-b border-gray-100 p-5 lg:grid-cols-[1fr_auto] lg:items-start">
+                        <div>
+                          <div className="flex flex-wrap items-center gap-2">
+                            <span className="font-mono text-xs font-800 text-slate-500">{request.ticketRef}</span>
+                            <span className="badge">{request.status}</span>
+                            <span className="badge">{String(request.category || '').replaceAll('_', ' ')}</span>
+                          </div>
+                          <h3 className="mt-2 text-xl font-800 text-[#172033]">{request.subject}</h3>
+                          <p className="mt-1 text-sm text-slate-500">
+                            {request.contactName} | {request.contactEmail}
+                            {request.bookingRef ? ` | Booking ${request.bookingRef}` : ''}
+                          </p>
+                        </div>
+                        <p className="text-sm text-slate-500 lg:text-right">{fmtDateTime(request.createdAt)}</p>
+                      </div>
+
+                      <div className="grid gap-5 p-5 lg:grid-cols-[1fr_0.9fr]">
+                        <div>
+                          <p className="text-xs font-800 uppercase tracking-wide text-slate-500">User issue</p>
+                          <p className="mt-2 whitespace-pre-wrap rounded-lg bg-slate-50 p-4 text-sm leading-6 text-[#172033]">
+                            {request.message}
+                          </p>
+
+                          {request.adminReply && (
+                            <div className="mt-4 rounded-lg border border-emerald-200 bg-emerald-50 p-4">
+                              <p className="flex items-center gap-2 text-sm font-800 text-emerald-900">
+                                <FaReply /> Last admin reply
+                              </p>
+                              <p className="mt-2 whitespace-pre-wrap text-sm leading-6 text-emerald-900">{request.adminReply}</p>
+                              <p className="mt-2 text-xs text-emerald-700">
+                                {request.replyEmailSent ? 'Email sent' : request.replyEmailMessage || 'Email not sent'}
+                              </p>
+                            </div>
+                          )}
+                        </div>
+
+                        <form onSubmit={(event) => replyToSupportRequest(event, request.ticketRef)} className="rounded-lg border border-gray-200 p-4">
+                          <label className="block">
+                            <span className="mb-1 block text-xs font-800 uppercase tracking-wide text-slate-500">
+                              Reply to user by email
+                            </span>
+                            <textarea
+                              value={replyForms[request.ticketRef] || ''}
+                              onChange={updateReplyForm(request.ticketRef)}
+                              className="input-field min-h-36 resize-y"
+                              placeholder="Write the support response..."
+                              required
+                              minLength={5}
+                              maxLength={2000}
+                            />
+                          </label>
+                          <button
+                            disabled={replyingRef === request.ticketRef}
+                            className="btn-primary mt-3 w-full"
+                          >
+                            <FaPaperPlane /> {replyingRef === request.ticketRef ? 'Sending...' : 'Send reply'}
+                          </button>
+                        </form>
+                      </div>
+                    </section>
+                  ))
+                )}
               </div>
             )}
           </>

@@ -1,6 +1,7 @@
 package com.bookmyroute.controller;
 
 import com.bookmyroute.dto.request.SupportRequestCreate;
+import com.bookmyroute.dto.request.SupportReplyRequest;
 import com.bookmyroute.dto.response.ApiResponse;
 import com.bookmyroute.dto.response.SupportRequestResponse;
 import com.bookmyroute.service.SupportService;
@@ -45,5 +46,15 @@ public class SupportController {
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<ApiResponse<List<SupportRequestResponse>>> getAllSupportRequests() {
         return ResponseEntity.ok(ApiResponse.success(supportService.getAllRequests()));
+    }
+
+    @PostMapping("/requests/{ticketRef}/reply")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<ApiResponse<SupportRequestResponse>> replyToSupportRequest(
+            @PathVariable String ticketRef,
+            @Valid @RequestBody SupportReplyRequest request) {
+        return ResponseEntity.ok(ApiResponse.success(
+                supportService.replyToRequest(ticketRef, request),
+                "Support reply sent"));
     }
 }

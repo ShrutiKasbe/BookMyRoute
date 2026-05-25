@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import {
   addMonths,
   eachDayOfInterval,
@@ -120,6 +120,10 @@ export function JourneyDatePicker({ value, onChange, label = 'Journey date' }) {
   const today = parseDate(todayValue())
   const [open, setOpen] = useState(false)
   const [viewMonth, setViewMonth] = useState(startOfMonth(selected))
+
+  useEffect(() => {
+    setViewMonth(startOfMonth(selected))
+  }, [value])
 
   const days = useMemo(() => {
     const start = startOfWeek(startOfMonth(viewMonth), { weekStartsOn: 1 })

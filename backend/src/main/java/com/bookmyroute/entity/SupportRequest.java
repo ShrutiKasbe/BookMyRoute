@@ -51,6 +51,18 @@ public class SupportRequest {
     @Column(name = "contact_phone", length = 15)
     private String contactPhone;
 
+    @Column(name = "admin_reply", columnDefinition = "TEXT")
+    private String adminReply;
+
+    @Column(name = "replied_at")
+    private LocalDateTime repliedAt;
+
+    @Column(name = "reply_email_sent")
+    private Boolean replyEmailSent;
+
+    @Column(name = "reply_email_message", length = 500)
+    private String replyEmailMessage;
+
     @CreatedDate
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
@@ -124,6 +136,14 @@ public class SupportRequest {
     public void setContactEmail(String contactEmail) { this.contactEmail = contactEmail; }
     public String getContactPhone() { return contactPhone; }
     public void setContactPhone(String contactPhone) { this.contactPhone = contactPhone; }
+    public String getAdminReply() { return adminReply; }
+    public void setAdminReply(String adminReply) { this.adminReply = adminReply; }
+    public LocalDateTime getRepliedAt() { return repliedAt; }
+    public void setRepliedAt(LocalDateTime repliedAt) { this.repliedAt = repliedAt; }
+    public Boolean getReplyEmailSent() { return replyEmailSent; }
+    public void setReplyEmailSent(Boolean replyEmailSent) { this.replyEmailSent = replyEmailSent; }
+    public String getReplyEmailMessage() { return replyEmailMessage; }
+    public void setReplyEmailMessage(String replyEmailMessage) { this.replyEmailMessage = replyEmailMessage; }
     public LocalDateTime getCreatedAt() { return createdAt; }
     public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
     public LocalDateTime getUpdatedAt() { return updatedAt; }

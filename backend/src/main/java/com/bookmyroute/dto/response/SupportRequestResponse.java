@@ -16,6 +16,10 @@ public class SupportRequestResponse {
     private String contactName;
     private String contactEmail;
     private String contactPhone;
+    private String adminReply;
+    private LocalDateTime repliedAt;
+    private Boolean replyEmailSent;
+    private String replyEmailMessage;
     private LocalDateTime createdAt;
 
     public Long getId() { return id; }
@@ -38,6 +42,14 @@ public class SupportRequestResponse {
     public void setContactEmail(String contactEmail) { this.contactEmail = contactEmail; }
     public String getContactPhone() { return contactPhone; }
     public void setContactPhone(String contactPhone) { this.contactPhone = contactPhone; }
+    public String getAdminReply() { return adminReply; }
+    public void setAdminReply(String adminReply) { this.adminReply = adminReply; }
+    public LocalDateTime getRepliedAt() { return repliedAt; }
+    public void setRepliedAt(LocalDateTime repliedAt) { this.repliedAt = repliedAt; }
+    public Boolean getReplyEmailSent() { return replyEmailSent; }
+    public void setReplyEmailSent(Boolean replyEmailSent) { this.replyEmailSent = replyEmailSent; }
+    public String getReplyEmailMessage() { return replyEmailMessage; }
+    public void setReplyEmailMessage(String replyEmailMessage) { this.replyEmailMessage = replyEmailMessage; }
     public LocalDateTime getCreatedAt() { return createdAt; }
     public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
 }

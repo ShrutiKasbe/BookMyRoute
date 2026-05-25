@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { useLocation, useNavigate, useSearchParams } from 'react-router-dom'
-import { FaBolt, FaBusAlt, FaFilter, FaUserFriends, FaWifi } from 'react-icons/fa'
+import { FaBolt, FaBusAlt, FaFilter, FaWifi } from 'react-icons/fa'
 import { MdSwapHoriz } from 'react-icons/md'
 import { format, parseISO } from 'date-fns'
 import toast from 'react-hot-toast'
@@ -116,8 +116,8 @@ export default function SearchPage() {
   const [form, setForm] = useState({
     from: state?.searchParams?.from || searchParams.get('origin') || 'Pune',
     to: state?.searchParams?.to || searchParams.get('destination') || 'Mumbai',
-    date: state?.searchParams?.date || searchParams.get('travelDate') || new Date().toISOString().split('T')[0],
-    passengers: state?.searchParams?.passengers || searchParams.get('seats') || 1,
+    date: state?.searchParams?.date || searchParams.get('travelDate') || format(new Date(), 'yyyy-MM-dd'),
+    passengers: 1,
   })
   const [results, setResults] = useState(null)
   const [loading, setLoading] = useState(false)
@@ -143,7 +143,7 @@ export default function SearchPage() {
         origin: params.from.trim(),
         destination: params.to.trim(),
         travelDate: params.date,
-        seats: Number(params.passengers),
+        seats: 1,
       })
       const list = data?.data ?? []
       setResults(list)
@@ -168,7 +168,7 @@ export default function SearchPage() {
       from: state?.searchParams?.from || searchParams.get('origin') || form.from,
       to: state?.searchParams?.to || searchParams.get('destination') || form.to,
       date: state?.searchParams?.date || searchParams.get('travelDate') || form.date,
-      passengers: state?.searchParams?.passengers || searchParams.get('seats') || form.passengers,
+      passengers: 1,
     })
   }, [])
 
@@ -186,7 +186,7 @@ export default function SearchPage() {
           <p className="mt-1 text-sm text-slate-500">Compare timings, seats and fares for your route.</p>
 
           <form onSubmit={handleSearch} className="mt-5 rounded-xl border border-gray-200 bg-white p-3 shadow-sm">
-            <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-[1fr_auto_1fr_0.85fr_0.65fr_auto] xl:items-end">
+            <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-[1fr_auto_1fr_0.85fr_auto] xl:items-end">
               <div>
                 <CitySearchInput
                   label="From"
@@ -220,15 +220,6 @@ export default function SearchPage() {
 
               <div>
                 <JourneyDatePicker value={form.date} onChange={set('date')} label="Date" />
-              </div>
-
-              <div>
-                <label className="mb-1 flex items-center gap-2 text-xs font-800 uppercase text-slate-500">
-                  <FaUserFriends className="text-[#f59e0b]" /> Riders
-                </label>
-                <select value={form.passengers} onChange={event => set('passengers')(event.target.value)} className="input-field">
-                  {[1,2,3,4,5,6].map(n => <option key={n} value={n}>{n}</option>)}
-                </select>
               </div>
 
               <button type="submit" disabled={loading} className="btn-primary h-12 px-7">

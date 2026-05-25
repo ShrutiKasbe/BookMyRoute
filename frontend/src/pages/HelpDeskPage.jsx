@@ -95,8 +95,8 @@ export default function HelpDeskPage() {
   const useHint = (hint) => {
     setForm(prev => ({
       ...prev,
-      subject: prev.subject || hint,
-      message: prev.message ? prev.message : `${hint}\n\nBooking ref:\nWhat happened:\nExpected resolution:`,
+      subject: hint,
+      message: `${hint}\n\nBooking ref:\nWhat happened:\nExpected resolution:`,
     }))
     setSubmittedTicket('')
   }

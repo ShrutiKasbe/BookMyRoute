@@ -56,8 +56,6 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.GET, "/api/auth/me").authenticated()
                 .requestMatchers(HttpMethod.POST, "/api/support/requests").permitAll()
 
-                .requestMatchers("/api/reviews/**").permitAll()
-                
                 // Swagger / OpenAPI (optional, keep for dev)
                 .requestMatchers(
                     "/v3/api-docs/**",

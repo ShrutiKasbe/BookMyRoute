@@ -1,6 +1,8 @@
 package com.bookmyroute.service.impl;
 
 import com.bookmyroute.dto.request.SupportRequestCreate;
+import com.bookmyroute.dto.request.SupportReplyRequest;
+import com.bookmyroute.dto.response.EmailDeliveryResponse;
 import com.bookmyroute.dto.response.SupportRequestResponse;
 import com.bookmyroute.entity.SupportRequest;
 import com.bookmyroute.entity.User;
@@ -8,6 +10,7 @@ import com.bookmyroute.enums.SupportStatus;
 import com.bookmyroute.exception.ResourceNotFoundException;
 import com.bookmyroute.repository.SupportRequestRepository;
 import com.bookmyroute.repository.UserRepository;
+import com.bookmyroute.service.EmailService;
 import com.bookmyroute.service.SupportService;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -23,11 +26,14 @@ public class SupportServiceImpl implements SupportService {
 
     private final SupportRequestRepository supportRequestRepository;
     private final UserRepository userRepository;
+    private final EmailService emailService;
 
     public SupportServiceImpl(SupportRequestRepository supportRequestRepository,
-                              UserRepository userRepository) {
+                              UserRepository userRepository,
+                              EmailService emailService) {
         this.supportRequestRepository = supportRequestRepository;
         this.userRepository = userRepository;
+        this.emailService = emailService;
     }
 
     @Override
@@ -71,6 +77,28 @@ public class SupportServiceImpl implements SupportService {
                 .toList();
     }
 
+    @Override
+    @Transactional
+    public SupportRequestResponse replyToRequest(String ticketRef, SupportReplyRequest request) {
+        SupportRequest supportRequest = supportRequestRepository.findByTicketRef(ticketRef)
+                .orElseThrow(() -> new ResourceNotFoundException("Support request not found"));
+        String reply = clean(request.getReply());
+        EmailDeliveryResponse delivery = emailService.sendSupportReply(
+                supportRequest.getContactEmail(),
+                supportRequest.getContactName(),
+                supportRequest.getTicketRef(),
+                supportRequest.getSubject(),
+                reply
+        );
+
+        supportRequest.setAdminReply(reply);
+        supportRequest.setRepliedAt(LocalDateTime.now());
+        supportRequest.setReplyEmailSent(delivery.isSent());
+        supportRequest.setReplyEmailMessage(delivery.getMessage());
+        supportRequest.setStatus(delivery.isSent() ? SupportStatus.RESOLVED : SupportStatus.IN_PROGRESS);
+        return toResponse(supportRequestRepository.save(supportRequest));
+    }
+
     private String generateTicketRef() {
         String date = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd"));
         String ticketRef;
@@ -101,6 +129,10 @@ public class SupportServiceImpl implements SupportService {
         response.setContactName(request.getContactName());
         response.setContactEmail(request.getContactEmail());
         response.setContactPhone(request.getContactPhone());
+        response.setAdminReply(request.getAdminReply());
+        response.setRepliedAt(request.getRepliedAt());
+        response.setReplyEmailSent(request.getReplyEmailSent());
+        response.setReplyEmailMessage(request.getReplyEmailMessage());
         response.setCreatedAt(request.getCreatedAt());
         return response;
     }
