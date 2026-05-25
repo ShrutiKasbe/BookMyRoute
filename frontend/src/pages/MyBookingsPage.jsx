@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react'
 import { format, isAfter, parseISO } from 'date-fns'
 import toast from 'react-hot-toast'
-import { FaBus, FaCalendarAlt, FaDownload, FaFilter, FaMoneyBillWave, FaRoute, FaTimes, FaTicketAlt, FaUserFriends } from 'react-icons/fa'
-import { bookingApi } from '../services/api'
+import { FaBus, FaCalendarAlt, FaDownload, FaFilter, FaMoneyBillWave, FaRegStar, FaRoute, FaStar, FaTimes, FaTicketAlt, FaTrash, FaUserFriends } from 'react-icons/fa'
+import { bookingApi, reviewApi } from '../services/api'
 import { useAuth } from '../context/AuthContext'
 
 const STATUS_STYLE = {
@@ -143,7 +143,161 @@ function TicketModal({ booking, onClose, onCancel, onDownload, downloading }) {
   )
 }
 
-function BookingCard({ booking, onClick, onCancel, onDownload, downloading, cancelling }) {
+function RatingModal({ booking, onClose, onSaved }) {
+  const [rating, setRating] = useState(0)
+  const [hovered, setHovered] = useState(0)
+  const [comment, setComment] = useState('')
+  const [reviewId, setReviewId] = useState(booking.reviewId || null)
+  const [loading, setLoading] = useState(Boolean(booking.reviewed))
+  const [saving, setSaving] = useState(false)
+  const [deleting, setDeleting] = useState(false)
+  const [error, setError] = useState('')
+
+  useEffect(() => {
+    if (!booking.reviewed || !booking.bookingId) return
+    reviewApi.getBookingReview(booking.bookingId)
+      .then(({ data }) => {
+        const review = data?.data
+        setReviewId(review?.reviewId || booking.reviewId)
+        setRating(review?.rating || 0)
+        setComment(review?.comment || '')
+      })
+      .catch(() => {})
+      .finally(() => setLoading(false))
+  }, [booking])
+
+  const validate = () => {
+    if (!rating) return 'Please select a star rating.'
+    if (comment.length > 1000) return 'Comment must be 1000 characters or less.'
+    return ''
+  }
+
+  const handleSave = async () => {
+    const message = validate()
+    if (message) {
+      setError(message)
+      return
+    }
+
+    setSaving(true)
+    setError('')
+    try {
+      const payload = { rating, comment: comment.trim() }
+      if (reviewId) {
+        await reviewApi.updateReview(reviewId, payload)
+        toast.success('Review updated')
+      } else {
+        const { data } = await reviewApi.submitReview({ ...payload, bookingId: booking.bookingId })
+        setReviewId(data?.data?.reviewId || null)
+        toast.success('Thanks for reviewing your journey')
+      }
+      await onSaved()
+      onClose()
+    } catch (err) {
+      setError(err.response?.data?.message || 'Could not save your review.')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const handleDelete = async () => {
+    if (!reviewId) return
+    setDeleting(true)
+    setError('')
+    try {
+      await reviewApi.deleteReview(reviewId)
+      toast.success('Review deleted')
+      await onSaved()
+      onClose()
+    } catch (err) {
+      setError(err.response?.data?.message || 'Could not delete your review.')
+    } finally {
+      setDeleting(false)
+    }
+  }
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-[#172033]/70 p-4 backdrop-blur-sm"
+      onClick={event => event.target === event.currentTarget && onClose()}
+    >
+      <div className="w-full max-w-md overflow-hidden rounded-lg border border-gray-200 bg-white shadow-xl">
+        <div className="flex items-center justify-between bg-[#172033] px-5 py-4 text-white">
+          <div>
+            <p className="font-800">Rate your journey</p>
+            <p className="text-xs text-slate-300">{booking.origin} to {booking.destination}</p>
+          </div>
+          <button onClick={onClose} className="flex h-9 w-9 items-center justify-center rounded-lg bg-white/10 hover:bg-white/20" aria-label="Close rating">
+            <FaTimes />
+          </button>
+        </div>
+
+        <div className="p-5">
+          {loading ? (
+            <div className="rounded-lg border border-dashed border-gray-300 bg-slate-50 p-8 text-center text-sm font-700 text-slate-500">
+              Loading your review...
+            </div>
+          ) : (
+            <>
+              <div className="mb-5 text-center">
+                <div className="mb-2 flex justify-center gap-2">
+                  {[1, 2, 3, 4, 5].map(value => {
+                    const active = value <= (hovered || rating)
+                    return (
+                      <button
+                        key={value}
+                        type="button"
+                        onClick={() => setRating(value)}
+                        onMouseEnter={() => setHovered(value)}
+                        onMouseLeave={() => setHovered(0)}
+                        className={`text-3xl transition-transform hover:scale-110 ${active ? 'text-[#f59e0b]' : 'text-slate-300'}`}
+                        aria-label={`${value} star${value > 1 ? 's' : ''}`}
+                      >
+                        {active ? <FaStar /> : <FaRegStar />}
+                      </button>
+                    )
+                  })}
+                </div>
+                <p className="text-sm font-700 text-slate-500">
+                  {rating ? `${rating} out of 5 stars` : 'Select your rating'}
+                </p>
+              </div>
+
+              <label>
+                <span className="mb-1 block text-xs font-800 uppercase text-slate-500">Comment</span>
+                <textarea
+                  value={comment}
+                  onChange={event => setComment(event.target.value)}
+                  rows={5}
+                  maxLength={1000}
+                  placeholder="What stood out about this trip?"
+                  className="input-field resize-none"
+                />
+              </label>
+              <div className="mt-1 flex justify-between text-xs text-slate-400">
+                <span>{error || 'Your review helps other passengers choose confidently.'}</span>
+                <span>{comment.length}/1000</span>
+              </div>
+
+              <div className="mt-5 grid gap-3 sm:grid-cols-[1fr_auto]">
+                <button onClick={handleSave} disabled={saving || deleting} className="btn-primary">
+                  {saving ? 'Saving...' : reviewId ? 'Update review' : 'Submit review'}
+                </button>
+                {reviewId && (
+                  <button onClick={handleDelete} disabled={saving || deleting} className="btn-outline text-red-600 hover:border-red-600 hover:text-red-600">
+                    <FaTrash /> {deleting ? 'Deleting...' : 'Delete'}
+                  </button>
+                )}
+              </div>
+            </>
+          )}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function BookingCard({ booking, onClick, onCancel, onDownload, onRate, downloading, cancelling }) {
   const style = statusFor(booking.bookingStatus)
   const seats = booking.seats?.length || 0
   const canCancel = canCancelBooking(booking)
@@ -173,6 +327,16 @@ function BookingCard({ booking, onClick, onCancel, onDownload, downloading, canc
       </div>
 
       <div className="mt-4 flex flex-wrap justify-end gap-2 border-t border-gray-100 pt-4">
+        {booking.bookingStatus === 'COMPLETED' && (
+          <button
+            onClick={() => onRate(booking)}
+            className="flex items-center gap-2 rounded-lg border border-amber-500 bg-amber-50 px-4 py-2 text-sm font-800 text-amber-700 transition-colors hover:bg-amber-100"
+          >
+            <FaStar />
+            {booking.reviewed ? 'Edit review' : 'Rate your journey'}
+          </button>
+        )}
+
         <button
           onClick={() => onDownload(booking.bookingRef)}
           disabled={downloading}
@@ -202,6 +366,7 @@ export default function MyBookingsPage() {
   const [bookings, setBookings] = useState([])
   const [loading, setLoading] = useState(true)
   const [selected, setSelected] = useState(null)
+  const [ratingBooking, setRatingBooking] = useState(null)
   const [filter, setFilter] = useState('ALL')
   const [downloadingRef, setDownloadingRef] = useState(null)
   const [cancellingRef, setCancellingRef] = useState(null)
@@ -321,6 +486,7 @@ export default function MyBookingsPage() {
                 onClick={() => setSelected(booking)}
                 onCancel={handleCancel}
                 onDownload={handleDownloadTicket}
+                onRate={setRatingBooking}
                 downloading={downloadingRef === booking.bookingRef}
                 cancelling={cancellingRef === booking.bookingRef}
               />
@@ -336,6 +502,14 @@ export default function MyBookingsPage() {
           onCancel={handleCancel}
           onDownload={handleDownloadTicket}
           downloading={downloadingRef === selected.bookingRef}
+        />
+      )}
+
+      {ratingBooking && (
+        <RatingModal
+          booking={ratingBooking}
+          onClose={() => setRatingBooking(null)}
+          onSaved={fetchBookings}
         />
       )}
     </div>

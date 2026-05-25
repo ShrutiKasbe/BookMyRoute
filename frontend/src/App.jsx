@@ -13,6 +13,7 @@ import MyBookingsPage     from './pages/MyBookingsPage'
 import AdminDashboardPage from './pages/AdminDashboardPage'
 import ProfilePage        from './pages/ProfilePage'
 import HelpDeskPage       from './pages/HelpDeskPage'
+import RouteDetailsPage   from './pages/RouteDetailsPage'
 
 export default function App() {
   return (
@@ -30,6 +31,9 @@ export default function App() {
             {/* Passenger-protected */}
             <Route path="/search" element={
               <ProtectedRoute><SearchPage /></ProtectedRoute>
+            } />
+            <Route path="/routes/:routeId" element={
+              <ProtectedRoute><RouteDetailsPage /></ProtectedRoute>
             } />
             <Route path="/book" element={
               <ProtectedRoute><BookingPage /></ProtectedRoute>

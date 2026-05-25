@@ -10,6 +10,7 @@ public class ScheduleResponse {
 
     public static class Search {
         private Long scheduleId;
+        private Long routeId;
         private String origin;
         private String destination;
         private LocalDateTime departureTime;
@@ -20,6 +21,8 @@ public class ScheduleResponse {
         private BusType busType;
         private String amenities;
         private int durationMins;
+        private double routeAverageRating;
+        private long routeReviewCount;
 
         public Search() {}
 
@@ -27,6 +30,7 @@ public class ScheduleResponse {
 
         public static class Builder {
             private Long scheduleId;
+            private Long routeId;
             private String origin;
             private String destination;
             private LocalDateTime departureTime;
@@ -37,8 +41,11 @@ public class ScheduleResponse {
             private BusType busType;
             private String amenities;
             private int durationMins;
+            private double routeAverageRating;
+            private long routeReviewCount;
 
             public Builder scheduleId(Long scheduleId) { this.scheduleId = scheduleId; return this; }
+            public Builder routeId(Long routeId) { this.routeId = routeId; return this; }
             public Builder origin(String origin) { this.origin = origin; return this; }
             public Builder destination(String destination) { this.destination = destination; return this; }
             public Builder departureTime(LocalDateTime departureTime) { this.departureTime = departureTime; return this; }
@@ -49,20 +56,26 @@ public class ScheduleResponse {
             public Builder busType(BusType busType) { this.busType = busType; return this; }
             public Builder amenities(String amenities) { this.amenities = amenities; return this; }
             public Builder durationMins(int durationMins) { this.durationMins = durationMins; return this; }
+            public Builder routeAverageRating(double routeAverageRating) { this.routeAverageRating = routeAverageRating; return this; }
+            public Builder routeReviewCount(long routeReviewCount) { this.routeReviewCount = routeReviewCount; return this; }
 
             public Search build() {
                 Search s = new Search();
-                s.scheduleId = this.scheduleId; s.origin = this.origin; s.destination = this.destination;
+                s.scheduleId = this.scheduleId; s.routeId = this.routeId;
+                s.origin = this.origin; s.destination = this.destination;
                 s.departureTime = this.departureTime; s.arrivalTime = this.arrivalTime;
                 s.baseFare = this.baseFare; s.availableSeats = this.availableSeats;
                 s.busName = this.busName; s.busType = this.busType;
                 s.amenities = this.amenities; s.durationMins = this.durationMins;
+                s.routeAverageRating = this.routeAverageRating; s.routeReviewCount = this.routeReviewCount;
                 return s;
             }
         }
 
         public Long getScheduleId() { return scheduleId; }
         public void setScheduleId(Long scheduleId) { this.scheduleId = scheduleId; }
+        public Long getRouteId() { return routeId; }
+        public void setRouteId(Long routeId) { this.routeId = routeId; }
         public String getOrigin() { return origin; }
         public void setOrigin(String origin) { this.origin = origin; }
         public String getDestination() { return destination; }
@@ -83,6 +96,10 @@ public class ScheduleResponse {
         public void setAmenities(String amenities) { this.amenities = amenities; }
         public int getDurationMins() { return durationMins; }
         public void setDurationMins(int durationMins) { this.durationMins = durationMins; }
+        public double getRouteAverageRating() { return routeAverageRating; }
+        public void setRouteAverageRating(double routeAverageRating) { this.routeAverageRating = routeAverageRating; }
+        public long getRouteReviewCount() { return routeReviewCount; }
+        public void setRouteReviewCount(long routeReviewCount) { this.routeReviewCount = routeReviewCount; }
     }
 
     public static class SeatInfo {

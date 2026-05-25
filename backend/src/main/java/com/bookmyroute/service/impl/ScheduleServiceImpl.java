@@ -8,6 +8,7 @@ import com.bookmyroute.entity.Seat;
 import com.bookmyroute.enums.SeatType;
 import com.bookmyroute.exception.ResourceNotFoundException;
 import com.bookmyroute.repository.ScheduleRepository;
+import com.bookmyroute.repository.RouteReviewRepository;
 import com.bookmyroute.repository.SeatRepository;
 import com.bookmyroute.service.ScheduleService;
 import org.springframework.stereotype.Service;
@@ -22,14 +23,18 @@ import java.util.stream.Collectors;
 
 @Service
 public class ScheduleServiceImpl implements ScheduleService {
-    public ScheduleServiceImpl(ScheduleRepository scheduleRepository, SeatRepository seatRepository) {
+    public ScheduleServiceImpl(ScheduleRepository scheduleRepository,
+                               SeatRepository seatRepository,
+                               RouteReviewRepository routeReviewRepository) {
         this.scheduleRepository = scheduleRepository;
         this.seatRepository = seatRepository;
+        this.routeReviewRepository = routeReviewRepository;
     }
 
 
     private final ScheduleRepository scheduleRepository;
     private final SeatRepository seatRepository;
+    private final RouteReviewRepository routeReviewRepository;
 
     @Override
     @Transactional
@@ -88,8 +93,15 @@ public class ScheduleServiceImpl implements ScheduleService {
     }
 
     private ScheduleResponse.Search toSearchDto(Schedule s) {
+        Long routeId = s.getRoute().getId();
+        long reviewCount = routeReviewRepository.countByRouteId(routeId);
+        double averageRating = reviewCount == 0
+                ? 0.0
+                : Math.round(routeReviewRepository.getAverageRatingByRouteId(routeId) * 10.0) / 10.0;
+
         return ScheduleResponse.Search.builder()
                 .scheduleId(s.getId())
+                .routeId(routeId)
                 .origin(s.getRoute().getOrigin())
                 .destination(s.getRoute().getDestination())
                 .departureTime(s.getDepartureTime())
@@ -100,6 +112,8 @@ public class ScheduleServiceImpl implements ScheduleService {
                 .busType(s.getBus().getBusType())
                 .amenities(s.getBus().getAmenities())
                 .durationMins(s.getRoute().getDurationMins())
+                .routeAverageRating(averageRating)
+                .routeReviewCount(reviewCount)
                 .build();
     }
 
