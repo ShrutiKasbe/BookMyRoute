@@ -5,7 +5,9 @@ All responses use the existing `ApiResponse<T>` envelope.
 ## Authenticated Passenger APIs
 
 ### Submit Review
-`POST /api/reviews`
+`POST /api/bookings/reviews`
+
+Backward-compatible alias: `POST /api/reviews`
 
 Body:
 ```json
@@ -25,7 +27,9 @@ Rules:
 - Comment is optional and limited to 1000 characters.
 
 ### Update Review
-`PUT /api/reviews/{reviewId}`
+`PUT /api/bookings/reviews/{reviewId}`
+
+Backward-compatible alias: `PUT /api/reviews/{reviewId}`
 
 Body:
 ```json
@@ -38,12 +42,16 @@ Body:
 Only the review owner can update it.
 
 ### Delete Review
-`DELETE /api/reviews/{reviewId}`
+`DELETE /api/bookings/reviews/{reviewId}`
+
+Backward-compatible alias: `DELETE /api/reviews/{reviewId}`
 
 Only the review owner can delete it.
 
 ### Get My Booking Review
-`GET /api/reviews/booking/{bookingId}`
+`GET /api/bookings/reviews/booking/{bookingId}`
+
+Backward-compatible alias: `GET /api/reviews/booking/{bookingId}`
 
 Returns the authenticated user's review for a booking.
 
