@@ -12,6 +12,7 @@ import java.util.List;
 public class BookingResponse {
     private Long bookingId;
     private String bookingRef;
+    private Long routeId;
     private String customerName;
     private String customerEmail;
     private String origin;
@@ -25,6 +26,9 @@ public class BookingResponse {
     private PaymentMethod paymentMethod;
     private LocalDateTime bookedAt;
     private List<SeatDetail> seats;
+    private Boolean canReview;
+    private Boolean reviewed;
+    private Long reviewId;
     private Boolean notificationEmailSent;
     private String notificationEmailMessage;
 
@@ -35,6 +39,7 @@ public class BookingResponse {
     public static class Builder {
         private Long bookingId;
         private String bookingRef;
+        private Long routeId;
         private String customerName;
         private String customerEmail;
         private String origin;
@@ -48,11 +53,15 @@ public class BookingResponse {
         private PaymentMethod paymentMethod;
         private LocalDateTime bookedAt;
         private List<SeatDetail> seats;
+        private Boolean canReview;
+        private Boolean reviewed;
+        private Long reviewId;
         private Boolean notificationEmailSent;
         private String notificationEmailMessage;
 
         public Builder bookingId(Long bookingId) { this.bookingId = bookingId; return this; }
         public Builder bookingRef(String bookingRef) { this.bookingRef = bookingRef; return this; }
+        public Builder routeId(Long routeId) { this.routeId = routeId; return this; }
         public Builder customerName(String customerName) { this.customerName = customerName; return this; }
         public Builder customerEmail(String customerEmail) { this.customerEmail = customerEmail; return this; }
         public Builder origin(String origin) { this.origin = origin; return this; }
@@ -66,18 +75,23 @@ public class BookingResponse {
         public Builder paymentMethod(PaymentMethod paymentMethod) { this.paymentMethod = paymentMethod; return this; }
         public Builder bookedAt(LocalDateTime bookedAt) { this.bookedAt = bookedAt; return this; }
         public Builder seats(List<SeatDetail> seats) { this.seats = seats; return this; }
+        public Builder canReview(Boolean canReview) { this.canReview = canReview; return this; }
+        public Builder reviewed(Boolean reviewed) { this.reviewed = reviewed; return this; }
+        public Builder reviewId(Long reviewId) { this.reviewId = reviewId; return this; }
         public Builder notificationEmailSent(Boolean notificationEmailSent) { this.notificationEmailSent = notificationEmailSent; return this; }
         public Builder notificationEmailMessage(String notificationEmailMessage) { this.notificationEmailMessage = notificationEmailMessage; return this; }
 
         public BookingResponse build() {
             BookingResponse r = new BookingResponse();
             r.bookingId = this.bookingId; r.bookingRef = this.bookingRef;
+            r.routeId = this.routeId;
             r.customerName = this.customerName; r.customerEmail = this.customerEmail;
             r.origin = this.origin; r.destination = this.destination;
             r.departureTime = this.departureTime; r.arrivalTime = this.arrivalTime;
             r.busName = this.busName; r.totalAmount = this.totalAmount;
             r.bookingStatus = this.bookingStatus; r.paymentStatus = this.paymentStatus;
             r.paymentMethod = this.paymentMethod; r.bookedAt = this.bookedAt; r.seats = this.seats;
+            r.canReview = this.canReview; r.reviewed = this.reviewed; r.reviewId = this.reviewId;
             r.notificationEmailSent = this.notificationEmailSent;
             r.notificationEmailMessage = this.notificationEmailMessage;
             return r;
@@ -88,6 +102,8 @@ public class BookingResponse {
     public void setBookingId(Long bookingId) { this.bookingId = bookingId; }
     public String getBookingRef() { return bookingRef; }
     public void setBookingRef(String bookingRef) { this.bookingRef = bookingRef; }
+    public Long getRouteId() { return routeId; }
+    public void setRouteId(Long routeId) { this.routeId = routeId; }
     public String getCustomerName() { return customerName; }
     public void setCustomerName(String customerName) { this.customerName = customerName; }
     public String getCustomerEmail() { return customerEmail; }
@@ -114,6 +130,12 @@ public class BookingResponse {
     public void setBookedAt(LocalDateTime bookedAt) { this.bookedAt = bookedAt; }
     public List<SeatDetail> getSeats() { return seats; }
     public void setSeats(List<SeatDetail> seats) { this.seats = seats; }
+    public Boolean getCanReview() { return canReview; }
+    public void setCanReview(Boolean canReview) { this.canReview = canReview; }
+    public Boolean getReviewed() { return reviewed; }
+    public void setReviewed(Boolean reviewed) { this.reviewed = reviewed; }
+    public Long getReviewId() { return reviewId; }
+    public void setReviewId(Long reviewId) { this.reviewId = reviewId; }
     public Boolean getNotificationEmailSent() { return notificationEmailSent; }
     public void setNotificationEmailSent(Boolean notificationEmailSent) { this.notificationEmailSent = notificationEmailSent; }
     public String getNotificationEmailMessage() { return notificationEmailMessage; }

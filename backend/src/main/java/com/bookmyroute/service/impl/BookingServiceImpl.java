@@ -30,12 +30,14 @@ public class BookingServiceImpl implements BookingService {
                               SeatRepository seatRepository,
                               UserRepository userRepository,
                               PaymentRepository paymentRepository,
+                              RouteReviewRepository routeReviewRepository,
                               EmailService emailService) {
         this.bookingRepository = bookingRepository;
         this.scheduleRepository = scheduleRepository;
         this.seatRepository = seatRepository;
         this.userRepository = userRepository;
         this.paymentRepository = paymentRepository;
+        this.routeReviewRepository = routeReviewRepository;
         this.emailService = emailService;
     }
 
@@ -45,6 +47,7 @@ public class BookingServiceImpl implements BookingService {
     private final SeatRepository seatRepository;
     private final UserRepository userRepository;
     private final PaymentRepository paymentRepository;
+    private final RouteReviewRepository routeReviewRepository;
     private final EmailService emailService;
 
     @Override
@@ -206,10 +209,12 @@ public class BookingServiceImpl implements BookingService {
                 .toList();
 
         Payment pay = b.getPayment();
+        RouteReview review = routeReviewRepository.findByBookingId(b.getId()).orElse(null);
 
         return BookingResponse.builder()
                 .bookingId(b.getId())
                 .bookingRef(b.getBookingRef())
+                .routeId(b.getSchedule().getRoute().getId())
                 .customerName(b.getUser().getName())
                 .customerEmail(b.getUser().getEmail())
                 .origin(b.getSchedule().getRoute().getOrigin())
@@ -223,6 +228,9 @@ public class BookingServiceImpl implements BookingService {
                 .paymentMethod(pay != null ? pay.getPaymentMethod() : null)
                 .bookedAt(b.getBookedAt())
                 .seats(seats)
+                .canReview(b.getStatus() == BookingStatus.COMPLETED && review == null)
+                .reviewed(review != null)
+                .reviewId(review != null ? review.getReviewId() : null)
                 .notificationEmailSent(emailDelivery != null ? emailDelivery.isSent() : null)
                 .notificationEmailMessage(emailDelivery != null ? emailDelivery.getMessage() : null)
                 .build();

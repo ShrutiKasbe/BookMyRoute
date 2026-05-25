@@ -83,6 +83,10 @@ export const searchApi = {
   getCities:   ()       => api.get('/routes/cities'),
 }
 
+export const routeApi = {
+  getRoute: (id) => api.get(`/routes/${id}`),
+}
+
 // ── Seats ─────────────────────────────────────────────────────
 // GET  /api/schedules/:scheduleId/seats  → available seats for a trip
 // POST /api/schedules/:scheduleId/seats/check → { seatIds: [] }
@@ -107,6 +111,15 @@ export const bookingApi = {
   getBooking:    (ref)    => api.get(`/bookings/${ref}`),
   downloadTicket: (ref)   => api.get(`/bookings/${ref}/pdf`, { responseType: 'blob' }),
   cancelBooking: (ref)    => api.patch(`/bookings/${ref}/cancel`),
+}
+
+export const reviewApi = {
+  submitReview: (data) => api.post('/reviews', data),
+  updateReview: (reviewId, data) => api.put(`/reviews/${reviewId}`, data),
+  deleteReview: (reviewId) => api.delete(`/reviews/${reviewId}`),
+  getBookingReview: (bookingId) => api.get(`/reviews/booking/${bookingId}`, { silentError: true }),
+  getRouteReviews: (routeId, params) => api.get(`/reviews/routes/${routeId}`, { params, skipAuth: true }),
+  getRouteSummary: (routeId) => api.get(`/reviews/routes/${routeId}/summary`, { skipAuth: true }),
 }
 
 export const chatbotApi = {

@@ -66,6 +66,7 @@ public class SecurityConfig {
                 // Public search & browse
                 .requestMatchers(HttpMethod.GET, "/api/schedules/search").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/routes/**").permitAll()
+                .requestMatchers(HttpMethod.GET, "/api/reviews/routes/**").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/buses/**").permitAll()
                 .requestMatchers(HttpMethod.POST, "/api/chatbot/message").permitAll()
 

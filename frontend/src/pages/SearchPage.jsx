@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { useLocation, useNavigate, useSearchParams } from 'react-router-dom'
-import { FaBolt, FaBusAlt, FaFilter, FaWifi } from 'react-icons/fa'
+import { FaBolt, FaBusAlt, FaFilter, FaStar, FaWifi } from 'react-icons/fa'
 import { MdSwapHoriz } from 'react-icons/md'
 import { format, parseISO } from 'date-fns'
 import toast from 'react-hot-toast'
@@ -59,6 +59,10 @@ function BusCard({ bus, onSelect }) {
               </span>
             </div>
             <div className="mt-2 flex flex-wrap gap-2">
+              <span className="inline-flex items-center gap-1 rounded-full bg-amber-50 px-2.5 py-1 text-xs font-800 text-amber-700">
+                <FaStar />
+                {bus.routeReviewCount ? `${Number(bus.routeAverageRating || 0).toFixed(1)} (${bus.routeReviewCount} Reviews)` : 'New route'}
+              </span>
               {amenities.slice(0, 4).map(a => (
                 <span key={a} className="inline-flex items-center gap-1 rounded-full bg-slate-100 px-2.5 py-1 text-xs font-700 text-slate-600">
                   {a === 'WiFi' && <FaWifi className="text-[#2563eb]" />}
@@ -101,6 +105,14 @@ function BusCard({ bus, onSelect }) {
           <button onClick={() => onSelect(bus)} className="btn-primary whitespace-nowrap">
             Select seats
           </button>
+          {bus.routeId && (
+            <button
+              onClick={() => onSelect({ ...bus, viewReviews: true })}
+              className="mt-2 w-full rounded-lg border border-gray-200 bg-white px-4 py-2 text-sm font-800 text-[#172033] transition-colors hover:border-[#d84e55] hover:text-[#d84e55]"
+            >
+              Route reviews
+            </button>
+          )}
         </div>
       </div>
     </div>
@@ -283,7 +295,9 @@ export default function SearchPage() {
                   <BusCard
                     key={bus.scheduleId}
                     bus={bus}
-                    onSelect={(b) => navigate('/book', { state: { bus: b, searchParams: form } })}
+                    onSelect={(b) => b.viewReviews
+                      ? navigate(`/routes/${b.routeId}`, { state: { route: b } })
+                      : navigate('/book', { state: { bus: b, searchParams: form } })}
                   />
                 ))}
               </div>
