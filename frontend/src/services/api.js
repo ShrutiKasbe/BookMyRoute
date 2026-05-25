@@ -114,10 +114,10 @@ export const bookingApi = {
 }
 
 export const reviewApi = {
-  submitReview: (data) => api.post('/reviews', data),
-  updateReview: (reviewId, data) => api.put(`/reviews/${reviewId}`, data),
-  deleteReview: (reviewId) => api.delete(`/reviews/${reviewId}`),
-  getBookingReview: (bookingId) => api.get(`/reviews/booking/${bookingId}`, { silentError: true }),
+  submitReview: (data) => api.post('/bookings/reviews', data),
+  updateReview: (reviewId, data) => api.put(`/bookings/reviews/${reviewId}`, data),
+  deleteReview: (reviewId) => api.delete(`/bookings/reviews/${reviewId}`),
+  getBookingReview: (bookingId) => api.get(`/bookings/reviews/booking/${bookingId}`, { silentError: true }),
   getRouteReviews: (routeId, params) => api.get(`/reviews/routes/${routeId}`, { params, skipAuth: true }),
   getRouteSummary: (routeId) => api.get(`/reviews/routes/${routeId}/summary`, { skipAuth: true }),
 }
