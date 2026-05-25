@@ -145,7 +145,6 @@ export const adminApi = {
   deactivateSchedule: (id)   => api.delete(`/schedules/${id}`),
 
   getAllBookings:  (params)   => api.get('/admin/bookings', { params }),
-  sendTestEmail:   (to)       => api.post('/admin/email/test', null, { params: { to } }),
   getSupportRequests: ()      => api.get('/support/requests'),
   replySupportRequest: (ticketRef, reply) => api.post(`/support/requests/${ticketRef}/reply`, { reply }),
 }

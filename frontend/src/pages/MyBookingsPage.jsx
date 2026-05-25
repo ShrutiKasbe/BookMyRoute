@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { format, parseISO } from 'date-fns'
+import { format, isAfter, parseISO } from 'date-fns'
 import toast from 'react-hot-toast'
 import { FaBus, FaCalendarAlt, FaDownload, FaFilter, FaMoneyBillWave, FaRoute, FaTimes, FaTicketAlt, FaUserFriends } from 'react-icons/fa'
 import { bookingApi } from '../services/api'
@@ -21,9 +21,23 @@ function statusFor(status) {
   return STATUS_STYLE[status] || STATUS_STYLE.PENDING
 }
 
+function isJourneyUpcoming(booking) {
+  if (!booking?.departureTime) return false
+  try {
+    return isAfter(parseISO(booking.departureTime), new Date())
+  } catch {
+    return false
+  }
+}
+
+function canCancelBooking(booking) {
+  return (booking.bookingStatus === 'CONFIRMED' || booking.bookingStatus === 'PENDING')
+    && isJourneyUpcoming(booking)
+}
+
 function TicketModal({ booking, onClose, onCancel, onDownload, downloading }) {
   const style = statusFor(booking.bookingStatus)
-  const canCancel = booking.bookingStatus === 'CONFIRMED' || booking.bookingStatus === 'PENDING'
+  const canCancel = canCancelBooking(booking)
   const [cancelling, setCancelling] = useState(false)
 
   const handleCancel = async () => {
@@ -132,7 +146,7 @@ function TicketModal({ booking, onClose, onCancel, onDownload, downloading }) {
 function BookingCard({ booking, onClick, onCancel, onDownload, downloading, cancelling }) {
   const style = statusFor(booking.bookingStatus)
   const seats = booking.seats?.length || 0
-  const canCancel = booking.bookingStatus === 'CONFIRMED' || booking.bookingStatus === 'PENDING'
+  const canCancel = canCancelBooking(booking)
 
   return (
     <div className="card-hover w-full p-5">

@@ -3,6 +3,7 @@ package com.bookmyroute.repository;
 import com.bookmyroute.entity.Booking;
 import com.bookmyroute.enums.BookingStatus;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
@@ -17,6 +18,17 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
     Optional<Booking> findByBookingRef(String bookingRef);
     List<Booking> findAllByStatus(BookingStatus status);
     List<Booking> findAllByUserIdAndStatus(Long userId, BookingStatus status);
+
+    @Modifying
+    @Query("""
+        UPDATE Booking b
+        SET b.status = :completed
+        WHERE b.status IN :activeStatuses
+          AND b.schedule.departureTime < :now
+        """)
+    int markPastBookingsCompleted(@Param("activeStatuses") List<BookingStatus> activeStatuses,
+                                  @Param("completed") BookingStatus completed,
+                                  @Param("now") LocalDateTime now);
 
     @Query("""
         SELECT DISTINCT b FROM Booking b

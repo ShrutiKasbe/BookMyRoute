@@ -4,8 +4,8 @@
 
 @layer base {
   :root {
-    --brand-red: #d84e55;
-    --brand-red-dark: #b93d45;
+    --brand-red: #2563eb;
+    --brand-red-dark: #1d4ed8;
     --ink: #172033;
     --muted: #64748b;
     --line: #e5e7eb;
@@ -42,8 +42,8 @@
 
 @layer components {
   .btn-primary {
-    @apply inline-flex items-center justify-center gap-2 rounded-lg bg-[#d84e55] px-5 py-3
-           text-sm font-700 text-white transition-colors hover:bg-[#b93d45]
+    @apply inline-flex items-center justify-center gap-2 rounded-lg bg-[#2563eb] px-5 py-3
+           text-sm font-700 text-white transition-colors hover:bg-[#1d4ed8]
            disabled:pointer-events-none disabled:opacity-60;
   }
 
@@ -55,7 +55,7 @@
 
   .btn-outline {
     @apply inline-flex items-center justify-center gap-2 rounded-lg border border-gray-300 bg-white px-5 py-3
-           text-sm font-700 text-[#172033] transition-colors hover:border-[#d84e55] hover:text-[#d84e55]
+           text-sm font-700 text-[#172033] transition-colors hover:border-[#2563eb] hover:text-[#2563eb]
            disabled:pointer-events-none disabled:opacity-60;
   }
 
@@ -65,13 +65,13 @@
 
   .card-hover {
     @apply rounded-lg border border-gray-200 bg-white shadow-sm transition-all duration-200
-           hover:-translate-y-0.5 hover:border-[#d84e55]/40 hover:shadow-md;
+           hover:-translate-y-0.5 hover:border-[#2563eb]/40 hover:shadow-md;
   }
 
   .input-field {
     @apply w-full rounded-lg border border-gray-300 bg-white px-4 py-3 text-sm text-[#172033]
-           placeholder-gray-400 transition-colors focus:border-[#d84e55] focus:outline-none
-           focus:ring-4 focus:ring-[#d84e55]/10;
+           placeholder-gray-400 transition-colors focus:border-[#2563eb] focus:outline-none
+           focus:ring-4 focus:ring-[#2563eb]/10;
   }
 
   .badge {
@@ -84,8 +84,8 @@
            transition-colors;
   }
 
-  .seat-available { @apply border-gray-300 bg-white text-[#172033] hover:border-[#d84e55] hover:bg-[#d84e55]/5; }
-  .seat-selected { @apply border-[#d84e55] bg-[#d84e55] text-white; }
+  .seat-available { @apply border-gray-300 bg-white text-[#172033] hover:border-[#2563eb] hover:bg-[#2563eb]/5; }
+  .seat-selected { @apply border-[#2563eb] bg-[#2563eb] text-white; }
   .seat-booked { @apply cursor-not-allowed border-gray-200 bg-gray-100 text-gray-400; }
 
   .page-shell {

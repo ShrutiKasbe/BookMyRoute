@@ -63,8 +63,9 @@ public class AdminServiceImpl implements AdminService {
     }
 
     @Override
-    @Transactional(readOnly = true)
+    @Transactional
     public AdminDashboardResponse getDashboard() {
+        markPastBookingsCompleted();
         AdminDashboardResponse response = new AdminDashboardResponse();
         response.setTotalUsers(userRepository.count());
         response.setActiveUsers(userRepository.countByIsActiveTrue());
@@ -210,8 +211,9 @@ public class AdminServiceImpl implements AdminService {
     }
 
     @Override
-    @Transactional(readOnly = true)
+    @Transactional
     public List<BookingResponse> getBookings(BookingStatus status, Long userId, LocalDateTime from, LocalDateTime to) {
+        markPastBookingsCompleted();
         if (from != null && to != null && from.isAfter(to)) {
             throw new BusinessException("from must be before to");
         }
@@ -223,6 +225,7 @@ public class AdminServiceImpl implements AdminService {
     @Override
     @Transactional
     public BookingResponse cancelBooking(String bookingRef) {
+        markPastBookingsCompleted();
         Booking booking = bookingRepository.findByBookingRef(bookingRef)
                 .orElseThrow(() -> new ResourceNotFoundException("Booking not found: " + bookingRef));
 
@@ -253,6 +256,14 @@ public class AdminServiceImpl implements AdminService {
         return paymentRepository.findAllByStatus(PaymentStatus.SUCCESS).stream()
                 .map(Payment::getAmount)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
+    }
+
+    private void markPastBookingsCompleted() {
+        bookingRepository.markPastBookingsCompleted(
+                List.of(BookingStatus.CONFIRMED, BookingStatus.PENDING),
+                BookingStatus.COMPLETED,
+                LocalDateTime.now()
+        );
     }
 
     private void validateScheduleRequest(AdminScheduleRequest request, Bus bus) {

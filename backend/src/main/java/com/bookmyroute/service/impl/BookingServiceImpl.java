@@ -112,8 +112,9 @@ public class BookingServiceImpl implements BookingService {
     }
 
     @Override
-    @Transactional(readOnly = true)
+    @Transactional
     public BookingResponse getBookingByRef(String bookingRef, String userEmail) {
+        markPastBookingsCompleted();
         Booking booking = bookingRepository.findByBookingRef(bookingRef)
                 .orElseThrow(() -> new ResourceNotFoundException("Booking not found: " + bookingRef));
         if (!booking.getUser().getEmail().equals(userEmail)) {
@@ -123,8 +124,9 @@ public class BookingServiceImpl implements BookingService {
     }
 
     @Override
-    @Transactional(readOnly = true)
+    @Transactional
     public List<BookingResponse> getMyBookings(String userEmail) {
+        markPastBookingsCompleted();
         User user = userRepository.findByEmail(userEmail)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found"));
         return bookingRepository.findAllByUserId(user.getId())
@@ -134,6 +136,7 @@ public class BookingServiceImpl implements BookingService {
     @Override
     @Transactional
     public BookingResponse cancelBooking(String bookingRef, String userEmail) {
+        markPastBookingsCompleted();
         Booking booking = bookingRepository.findByBookingRef(bookingRef)
                 .orElseThrow(() -> new ResourceNotFoundException("Booking not found: " + bookingRef));
 
@@ -166,8 +169,9 @@ public class BookingServiceImpl implements BookingService {
     }
 
     @Override
-    @Transactional(readOnly = true)
+    @Transactional
     public List<BookingResponse> getAllBookings() {
+        markPastBookingsCompleted();
         return bookingRepository.findAll().stream().map(this::toResponse).toList();
     }
 
@@ -176,6 +180,14 @@ public class BookingServiceImpl implements BookingService {
     private String generateRef() {
         String date = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd"));
         return "BMR-" + date + "-" + String.format("%05d", SEQ.getAndIncrement());
+    }
+
+    private void markPastBookingsCompleted() {
+        bookingRepository.markPastBookingsCompleted(
+                List.of(BookingStatus.CONFIRMED, BookingStatus.PENDING),
+                BookingStatus.COMPLETED,
+                LocalDateTime.now()
+        );
     }
 
     private BookingResponse toResponse(Booking b) {

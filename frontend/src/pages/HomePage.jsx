@@ -68,7 +68,7 @@ export default function HomePage() {
   return (
     <div className="page-shell">
       <section
-        className="relative overflow-hidden bg-[#172033] text-white"
+        className="relative bg-[#172033] text-white"
         style={{
           backgroundImage:
             'linear-gradient(90deg, rgba(23,32,51,0.94), rgba(23,32,51,0.74)), url(https://images.unsplash.com/photo-1544620347-c4fd4a3d5957?auto=format&fit=crop&w=1800&q=80)',
@@ -89,7 +89,7 @@ export default function HomePage() {
             </p>
           </div>
 
-          <form onSubmit={handleSearch} className="mt-10 rounded-xl bg-white p-3 shadow-2xl">
+          <form onSubmit={handleSearch} className="relative z-20 mt-10 rounded-xl bg-white p-3 shadow-2xl">
             <div className="grid gap-3 lg:grid-cols-[1fr_auto_1fr_0.8fr_auto] lg:items-end">
               <div>
                 <CitySearchInput

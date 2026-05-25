@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { FaBus, FaEnvelope, FaLifeRing, FaPaperPlane, FaPlus, FaReply, FaRoute, FaTicketAlt } from 'react-icons/fa'
+import { FaBus, FaLifeRing, FaPaperPlane, FaPlus, FaReply, FaRoute, FaTicketAlt } from 'react-icons/fa'
 import { MdDashboard, MdSchedule } from 'react-icons/md'
 import { adminApi } from '../services/api'
 import toast from 'react-hot-toast'
@@ -67,8 +67,6 @@ export default function AdminDashboardPage() {
   const [supportRequests, setSupportRequests] = useState([])
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
-  const [testEmail, setTestEmail] = useState('')
-  const [sendingEmail, setSendingEmail] = useState(false)
   const [replyForms, setReplyForms] = useState({})
   const [replyingRef, setReplyingRef] = useState('')
 
@@ -225,22 +223,6 @@ export default function AdminDashboardPage() {
     await loadAdminData()
   }
 
-  const sendTestEmail = async (e) => {
-    e.preventDefault()
-    setSendingEmail(true)
-    try {
-      const { data } = await adminApi.sendTestEmail(testEmail.trim())
-      const delivery = data?.data
-      if (delivery?.sent) {
-        toast.success('Test email sent')
-      } else {
-        toast.error(delivery?.message || 'Test email was not sent')
-      }
-    } finally {
-      setSendingEmail(false)
-    }
-  }
-
   const replyToSupportRequest = async (e, ticketRef) => {
     e.preventDefault()
     const reply = (replyForms[ticketRef] || '').trim()
@@ -300,23 +282,6 @@ export default function AdminDashboardPage() {
                     </div>
                   ))}
                 </div>
-
-                <form onSubmit={sendTestEmail} className="card p-5">
-                  <h2 className="mb-4 flex items-center gap-2 text-lg font-800 text-[#172033]"><FaEnvelope /> Test email notifications</h2>
-                  <div className="grid gap-3 md:grid-cols-[1fr_auto]">
-                    <input
-                      required
-                      type="email"
-                      value={testEmail}
-                      onChange={e => setTestEmail(e.target.value)}
-                      placeholder="recipient@example.com"
-                      className="input-field"
-                    />
-                    <button disabled={sendingEmail} className="btn-primary">
-                      {sendingEmail ? 'Sending...' : 'Send test'}
-                    </button>
-                  </div>
-                </form>
               </div>
             )}
 

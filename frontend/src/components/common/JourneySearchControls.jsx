@@ -8,6 +8,7 @@ import {
   isBefore,
   isSameDay,
   isSameMonth,
+  isSameYear,
   parseISO,
   startOfMonth,
   startOfWeek,
@@ -137,6 +138,11 @@ export function JourneyDatePicker({ value, onChange, label = 'Journey date' }) {
     setOpen(false)
   }
 
+  const canGoPrevious = (
+    viewMonth.getFullYear() > today.getFullYear()
+    || (isSameYear(viewMonth, today) && viewMonth.getMonth() > today.getMonth())
+  )
+
   return (
     <div className="relative">
       <label className="mb-1 flex items-center gap-2 text-xs font-800 uppercase tracking-wide text-slate-500">
@@ -152,12 +158,13 @@ export function JourneyDatePicker({ value, onChange, label = 'Journey date' }) {
       </button>
 
       {open && (
-        <div className="absolute right-0 top-[calc(100%+0.35rem)] z-40 w-[min(22rem,calc(100vw-2rem))] rounded-lg border border-gray-200 bg-white p-4 shadow-xl">
+        <div className="absolute right-0 top-[calc(100%+0.35rem)] z-[90] w-[min(22rem,calc(100vw-2rem))] rounded-lg border border-gray-200 bg-white p-4 shadow-xl">
           <div className="mb-4 flex items-center justify-between">
             <button
               type="button"
               onClick={() => setViewMonth(month => subMonths(month, 1))}
-              className="flex h-9 w-9 items-center justify-center rounded-lg border border-gray-200 text-[#172033] hover:border-[#d84e55] hover:text-[#d84e55]"
+              disabled={!canGoPrevious}
+              className="flex h-9 w-9 items-center justify-center rounded-lg border border-gray-200 text-[#172033] hover:border-[#d84e55] hover:text-[#d84e55] disabled:cursor-not-allowed disabled:opacity-40"
               aria-label="Previous month"
             >
               <FaChevronLeft />
