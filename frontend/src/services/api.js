@@ -114,6 +114,14 @@ export const bookingApi = {
   cancelBooking: (ref)    => api.patch(`/bookings/${ref}/cancel`),
 }
 
+// Payment Gateway API (Razorpay integration)
+// POST /api/payments/create-order  → { orderId, amount, currency, keyId, ... }
+// POST /api/payments/verify        → BookingResponse (booking confirmed after payment)
+export const paymentApi = {
+  createOrder: (data)       => api.post('/payments/create-order', data),
+  verifyPayment: (data)     => api.post('/payments/verify', data),
+}
+
 export const reviewApi = {
   submitReview: (data) => api.post('/bookings/reviews', data),
   updateReview: (reviewId, data) => api.put(`/bookings/reviews/${reviewId}`, data),
