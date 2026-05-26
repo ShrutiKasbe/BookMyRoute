@@ -108,6 +108,7 @@ export const seatApi = {
 export const bookingApi = {
   createBooking: (data)   => api.post('/bookings', data),
   getMyBookings: ()       => api.get('/bookings/my'),
+  searchMyBookings: (params) => api.get('/bookings/my/search', { params }),
   getBooking:    (ref)    => api.get(`/bookings/${ref}`),
   downloadTicket: (ref)   => api.get(`/bookings/${ref}/pdf`, { responseType: 'blob' }),
   cancelBooking: (ref)    => api.patch(`/bookings/${ref}/cancel`),
