@@ -137,6 +137,20 @@
             <scope>test</scope>
         </dependency>
 
+        <!-- Google ID Token verifier -->
+        <dependency>
+            <groupId>com.google.api-client</groupId>
+            <artifactId>google-api-client</artifactId>
+            <version>2.4.0</version>
+        </dependency>
+
+        <!-- Gson JSON factory (required by google-api-client) -->
+        <dependency>
+            <groupId>com.google.http-client</groupId>
+            <artifactId>google-http-client-gson</artifactId>
+            <version>1.44.2</version>
+            </dependency>
+
     </dependencies>
 
     <build>

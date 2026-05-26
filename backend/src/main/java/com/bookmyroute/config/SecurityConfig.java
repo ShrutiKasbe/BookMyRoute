@@ -53,10 +53,11 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.POST, "/api/auth/register").permitAll()
                 .requestMatchers(HttpMethod.POST, "/api/auth/login").permitAll()
                 .requestMatchers(HttpMethod.POST, "/api/auth/admin/login").permitAll()
-                .requestMatchers(HttpMethod.GET, "/api/auth/me").authenticated()
+                .requestMatchers(HttpMethod.POST, "/api/auth/oauth/google").permitAll()  // Google OAuth
+                .requestMatchers(HttpMethod.GET,  "/api/auth/me").authenticated()
                 .requestMatchers(HttpMethod.POST, "/api/support/requests").permitAll()
 
-                // Swagger / OpenAPI (optional, keep for dev)
+                // Swagger / OpenAPI
                 .requestMatchers(
                     "/v3/api-docs/**",
                     "/swagger-ui/**",

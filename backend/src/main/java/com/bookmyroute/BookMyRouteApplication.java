@@ -9,3 +9,4 @@ public class BookMyRouteApplication {
         SpringApplication.run(BookMyRouteApplication.class, args);
     }
 }
+    

@@ -38,6 +38,9 @@ public class User {
     @Column(name = "is_active", nullable = false)
     private Boolean isActive = true;
 
+    @Column(name = "google_sub", unique = true, length = 255)
+    private String googleSub;
+
     @CreatedDate
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
@@ -52,7 +55,8 @@ public class User {
     public User() {}
 
     public User(Long id, String name, String email, String passwordHash, String phone,
-                Role role, Boolean isActive, LocalDateTime createdAt, LocalDateTime updatedAt,
+                Role role, Boolean isActive, String googleSub,
+                LocalDateTime createdAt, LocalDateTime updatedAt,
                 List<Booking> bookings) {
         this.id = id;
         this.name = name;
@@ -61,12 +65,12 @@ public class User {
         this.phone = phone;
         this.role = role;
         this.isActive = isActive;
+        this.googleSub = googleSub;
         this.createdAt = createdAt;
         this.updatedAt = updatedAt;
         this.bookings = bookings;
     }
 
-    // Builder
     public static Builder builder() { return new Builder(); }
 
     public static class Builder {
@@ -77,50 +81,60 @@ public class User {
         private String phone;
         private Role role = Role.PASSENGER;
         private Boolean isActive = true;
+        private String googleSub;
         private LocalDateTime createdAt;
         private LocalDateTime updatedAt;
         private List<Booking> bookings = new ArrayList<>();
 
-        public Builder id(Long id) { this.id = id; return this; }
-        public Builder name(String name) { this.name = name; return this; }
-        public Builder email(String email) { this.email = email; return this; }
-        public Builder passwordHash(String passwordHash) { this.passwordHash = passwordHash; return this; }
-        public Builder phone(String phone) { this.phone = phone; return this; }
-        public Builder role(Role role) { this.role = role; return this; }
-        public Builder isActive(Boolean isActive) { this.isActive = isActive; return this; }
-        public Builder createdAt(LocalDateTime createdAt) { this.createdAt = createdAt; return this; }
-        public Builder updatedAt(LocalDateTime updatedAt) { this.updatedAt = updatedAt; return this; }
+        public Builder id(Long id)                      { this.id = id; return this; }
+        public Builder name(String name)                { this.name = name; return this; }
+        public Builder email(String email)              { this.email = email; return this; }
+        public Builder passwordHash(String p)           { this.passwordHash = p; return this; }
+        public Builder phone(String phone)              { this.phone = phone; return this; }
+        public Builder role(Role role)                  { this.role = role; return this; }
+        public Builder isActive(Boolean a)              { this.isActive = a; return this; }
+        public Builder googleSub(String sub)            { this.googleSub = sub; return this; }
+        public Builder createdAt(LocalDateTime t)       { this.createdAt = t; return this; }
+        public Builder updatedAt(LocalDateTime t)       { this.updatedAt = t; return this; }
         public Builder bookings(List<Booking> bookings) { this.bookings = bookings; return this; }
 
         public User build() {
             User u = new User();
-            u.id = this.id; u.name = this.name; u.email = this.email;
-            u.passwordHash = this.passwordHash; u.phone = this.phone;
-            u.role = this.role; u.isActive = this.isActive;
-            u.createdAt = this.createdAt; u.updatedAt = this.updatedAt;
+            u.id = this.id;
+            u.name = this.name;
+            u.email = this.email;
+            u.passwordHash = this.passwordHash;
+            u.phone = this.phone;
+            u.role = this.role;
+            u.isActive = this.isActive;
+            u.googleSub = this.googleSub;
+            u.createdAt = this.createdAt;
+            u.updatedAt = this.updatedAt;
             u.bookings = this.bookings;
             return u;
         }
     }
 
-    public Long getId() { return id; }
-    public void setId(Long id) { this.id = id; }
-    public String getName() { return name; }
-    public void setName(String name) { this.name = name; }
-    public String getEmail() { return email; }
-    public void setEmail(String email) { this.email = email; }
-    public String getPasswordHash() { return passwordHash; }
-    public void setPasswordHash(String passwordHash) { this.passwordHash = passwordHash; }
-    public String getPhone() { return phone; }
-    public void setPhone(String phone) { this.phone = phone; }
-    public Role getRole() { return role; }
-    public void setRole(Role role) { this.role = role; }
-    public Boolean getIsActive() { return isActive; }
-    public void setIsActive(Boolean isActive) { this.isActive = isActive; }
-    public LocalDateTime getCreatedAt() { return createdAt; }
-    public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
-    public LocalDateTime getUpdatedAt() { return updatedAt; }
-    public void setUpdatedAt(LocalDateTime updatedAt) { this.updatedAt = updatedAt; }
-    public List<Booking> getBookings() { return bookings; }
-    public void setBookings(List<Booking> bookings) { this.bookings = bookings; }
+    public Long getId()                        { return id; }
+    public void setId(Long id)                 { this.id = id; }
+    public String getName()                    { return name; }
+    public void setName(String name)           { this.name = name; }
+    public String getEmail()                   { return email; }
+    public void setEmail(String email)         { this.email = email; }
+    public String getPasswordHash()            { return passwordHash; }
+    public void setPasswordHash(String p)      { this.passwordHash = p; }
+    public String getPhone()                   { return phone; }
+    public void setPhone(String phone)         { this.phone = phone; }
+    public Role getRole()                      { return role; }
+    public void setRole(Role role)             { this.role = role; }
+    public Boolean getIsActive()               { return isActive; }
+    public void setIsActive(Boolean a)         { this.isActive = a; }
+    public String getGoogleSub()               { return googleSub; }
+    public void setGoogleSub(String googleSub) { this.googleSub = googleSub; }
+    public LocalDateTime getCreatedAt()        { return createdAt; }
+    public void setCreatedAt(LocalDateTime t)  { this.createdAt = t; }
+    public LocalDateTime getUpdatedAt()        { return updatedAt; }
+    public void setUpdatedAt(LocalDateTime t)  { this.updatedAt = t; }
+    public List<Booking> getBookings()         { return bookings; }
+    public void setBookings(List<Booking> b)   { this.bookings = b; }
 }
