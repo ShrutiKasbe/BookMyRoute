@@ -2,6 +2,8 @@ package com.bookmyroute.repository;
 
 import com.bookmyroute.entity.Booking;
 import com.bookmyroute.enums.BookingStatus;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
@@ -18,6 +20,32 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
     Optional<Booking> findByBookingRef(String bookingRef);
     List<Booking> findAllByStatus(BookingStatus status);
     List<Booking> findAllByUserIdAndStatus(Long userId, BookingStatus status);
+
+    @Query(value = """
+        SELECT DISTINCT b FROM Booking b
+        JOIN FETCH b.user u
+        JOIN FETCH b.schedule s
+        JOIN FETCH s.route
+        JOIN FETCH s.bus
+        LEFT JOIN FETCH b.payment
+        WHERE u.id = :userId
+          AND (:status IS NULL OR b.status = :status)
+          AND (:from IS NULL OR b.bookedAt >= :from)
+          AND (:to IS NULL OR b.bookedAt <= :to)
+        """,
+        countQuery = """
+        SELECT COUNT(b) FROM Booking b
+        JOIN b.user u
+        WHERE u.id = :userId
+          AND (:status IS NULL OR b.status = :status)
+          AND (:from IS NULL OR b.bookedAt >= :from)
+          AND (:to IS NULL OR b.bookedAt <= :to)
+        """)
+    Page<Booking> findMyBookings(@Param("userId") Long userId,
+                                 @Param("status") BookingStatus status,
+                                 @Param("from") LocalDateTime from,
+                                 @Param("to") LocalDateTime to,
+                                 Pageable pageable);
 
     @Modifying
     @Query("""

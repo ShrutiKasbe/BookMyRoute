@@ -1,15 +1,19 @@
 package com.bookmyroute.controller;
 
 import com.bookmyroute.dto.request.BookingRequest;
+import com.bookmyroute.dto.request.BookingSearchRequest;
 import com.bookmyroute.dto.request.RouteReviewRequest;
 import com.bookmyroute.dto.request.RouteReviewUpdateRequest;
 import com.bookmyroute.dto.response.ApiResponse;
 import com.bookmyroute.dto.response.BookingResponse;
+import com.bookmyroute.dto.response.PagedResponse;
 import com.bookmyroute.dto.response.RouteReviewResponse;
+import com.bookmyroute.enums.BookingStatus;
 import com.bookmyroute.service.BookingPdfService;
 import com.bookmyroute.service.BookingService;
 import com.bookmyroute.service.RouteReviewService;
 import jakarta.validation.Valid;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ContentDisposition;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
@@ -20,6 +24,7 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDate;
 import java.util.List;
 
 @RestController
@@ -55,6 +60,21 @@ public class BookingController {
             @AuthenticationPrincipal UserDetails userDetails) {
         return ResponseEntity.ok(ApiResponse.success(
                 bookingService.getMyBookings(userDetails.getUsername())));
+    }
+
+    @GetMapping("/my/search")
+    public ResponseEntity<ApiResponse<PagedResponse<BookingResponse>>> searchMyBookings(
+            @RequestParam(required = false) BookingStatus status,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate fromDate,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate toDate,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(defaultValue = "bookedAt") String sortBy,
+            @RequestParam(defaultValue = "desc") String sortDir,
+            @AuthenticationPrincipal UserDetails userDetails) {
+        BookingSearchRequest request = new BookingSearchRequest(status, fromDate, toDate, page, size, sortBy, sortDir);
+        return ResponseEntity.ok(ApiResponse.success(
+                bookingService.searchMyBookings(request, userDetails.getUsername())));
     }
 
     @GetMapping("/{bookingRef}")

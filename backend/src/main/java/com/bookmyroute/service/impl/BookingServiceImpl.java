@@ -1,8 +1,10 @@
 package com.bookmyroute.service.impl;
 
 import com.bookmyroute.dto.request.BookingRequest;
+import com.bookmyroute.dto.request.BookingSearchRequest;
 import com.bookmyroute.dto.response.BookingResponse;
 import com.bookmyroute.dto.response.EmailDeliveryResponse;
+import com.bookmyroute.dto.response.PagedResponse;
 import com.bookmyroute.entity.*;
 import com.bookmyroute.enums.BookingStatus;
 import com.bookmyroute.enums.PaymentStatus;
@@ -11,19 +13,34 @@ import com.bookmyroute.exception.ResourceNotFoundException;
 import com.bookmyroute.repository.*;
 import com.bookmyroute.service.BookingService;
 import com.bookmyroute.service.EmailService;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.atomic.AtomicLong;
 
 @Service
 public class BookingServiceImpl implements BookingService {
     private static final AtomicLong SEQ = new AtomicLong(1);
+    private static final int MAX_BOOKING_PAGE_SIZE = 50;
+    private static final Map<String, String> BOOKING_SORT_FIELDS = Map.of(
+            "bookedAt", "bookedAt",
+            "departureTime", "schedule.departureTime",
+            "totalAmount", "totalAmount",
+            "status", "status",
+            "bookingStatus", "status"
+    );
 
     public BookingServiceImpl(BookingRepository bookingRepository,
                               ScheduleRepository scheduleRepository,
@@ -138,6 +155,34 @@ public class BookingServiceImpl implements BookingService {
 
     @Override
     @Transactional
+    public PagedResponse<BookingResponse> searchMyBookings(BookingSearchRequest request, String userEmail) {
+        markPastBookingsCompleted();
+        User user = userRepository.findByEmail(userEmail)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+
+        validateDateRange(request.getFromDate(), request.getToDate());
+
+        Pageable pageable = buildBookingPageable(request);
+        Page<Booking> bookings = bookingRepository.findMyBookings(
+                user.getId(),
+                request.getStatus(),
+                startOfDay(request.getFromDate()),
+                endOfDay(request.getToDate()),
+                pageable
+        );
+
+        return new PagedResponse<>(
+                bookings.getContent().stream().map(this::toResponse).toList(),
+                bookings.getNumber(),
+                bookings.getSize(),
+                bookings.getTotalElements(),
+                bookings.getTotalPages(),
+                bookings.isLast()
+        );
+    }
+
+    @Override
+    @Transactional
     public BookingResponse cancelBooking(String bookingRef, String userEmail) {
         markPastBookingsCompleted();
         Booking booking = bookingRepository.findByBookingRef(bookingRef)
@@ -191,6 +236,28 @@ public class BookingServiceImpl implements BookingService {
                 BookingStatus.COMPLETED,
                 LocalDateTime.now()
         );
+    }
+
+    private void validateDateRange(LocalDate fromDate, LocalDate toDate) {
+        if (fromDate != null && toDate != null && fromDate.isAfter(toDate)) {
+            throw new BusinessException("From date cannot be after to date");
+        }
+    }
+
+    private LocalDateTime startOfDay(LocalDate date) {
+        return date == null ? null : date.atStartOfDay();
+    }
+
+    private LocalDateTime endOfDay(LocalDate date) {
+        return date == null ? null : date.atTime(LocalTime.MAX);
+    }
+
+    private Pageable buildBookingPageable(BookingSearchRequest request) {
+        int safePage = Math.max(request.getPage(), 0);
+        int safeSize = Math.min(Math.max(request.getSize(), 1), MAX_BOOKING_PAGE_SIZE);
+        String sortProperty = BOOKING_SORT_FIELDS.getOrDefault(request.getSortBy(), "bookedAt");
+        Sort.Direction direction = "asc".equalsIgnoreCase(request.getSortDir()) ? Sort.Direction.ASC : Sort.Direction.DESC;
+        return PageRequest.of(safePage, safeSize, Sort.by(direction, sortProperty));
     }
 
     private BookingResponse toResponse(Booking b) {
