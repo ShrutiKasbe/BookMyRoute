@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { format, isAfter, parseISO } from 'date-fns'
 import toast from 'react-hot-toast'
-import { FaBus, FaCalendarAlt, FaDownload, FaFilter, FaMoneyBillWave, FaRegStar, FaRoute, FaStar, FaTimes, FaTicketAlt, FaTrash, FaUserFriends } from 'react-icons/fa'
+import { FaBus, FaCalendarAlt, FaChevronLeft, FaChevronRight, FaDownload, FaFilter, FaMoneyBillWave, FaRegStar, FaRoute, FaSearch, FaStar, FaTimes, FaTicketAlt, FaTrash, FaUndo, FaUserFriends } from 'react-icons/fa'
 import { bookingApi, reviewApi } from '../services/api'
 import { useAuth } from '../context/AuthContext'
 
@@ -33,6 +33,21 @@ function isJourneyUpcoming(booking) {
 function canCancelBooking(booking) {
   return (booking.bookingStatus === 'CONFIRMED' || booking.bookingStatus === 'PENDING')
     && isJourneyUpcoming(booking)
+}
+
+const DEFAULT_FILTERS = {
+  status: 'ALL',
+  fromDate: '',
+  toDate: '',
+}
+
+const DEFAULT_PAGE = {
+  content: [],
+  page: 0,
+  size: 8,
+  totalElements: 0,
+  totalPages: 0,
+  last: true,
 }
 
 function TicketModal({ booking, onClose, onCancel, onDownload, downloading }) {
@@ -364,33 +379,103 @@ function BookingCard({ booking, onClick, onCancel, onDownload, onRate, downloadi
 export default function MyBookingsPage() {
   const { user } = useAuth()
   const [bookings, setBookings] = useState([])
+  const [summaryBookings, setSummaryBookings] = useState([])
+  const [pageInfo, setPageInfo] = useState(DEFAULT_PAGE)
   const [loading, setLoading] = useState(true)
+  const [summaryLoading, setSummaryLoading] = useState(true)
   const [selected, setSelected] = useState(null)
   const [ratingBooking, setRatingBooking] = useState(null)
-  const [filter, setFilter] = useState('ALL')
+  const [filters, setFilters] = useState(DEFAULT_FILTERS)
+  const [appliedFilters, setAppliedFilters] = useState(DEFAULT_FILTERS)
+  const [validationError, setValidationError] = useState('')
+  const [listError, setListError] = useState('')
   const [downloadingRef, setDownloadingRef] = useState(null)
   const [cancellingRef, setCancellingRef] = useState(null)
 
-  const fetchBookings = async () => {
-    setLoading(true)
+  const buildParams = (filterState, page = 0) => {
+    const params = {
+      page,
+      size: DEFAULT_PAGE.size,
+      sortBy: 'bookedAt',
+      sortDir: 'desc',
+    }
+    if (filterState.status && filterState.status !== 'ALL') params.status = filterState.status
+    if (filterState.fromDate) params.fromDate = filterState.fromDate
+    if (filterState.toDate) params.toDate = filterState.toDate
+    return params
+  }
+
+  const fetchSummary = async () => {
+    setSummaryLoading(true)
     try {
       const { data } = await bookingApi.getMyBookings()
-      setBookings(data?.data ?? [])
+      setSummaryBookings(data?.data ?? [])
     } catch {
+      setSummaryBookings([])
+    } finally {
+      setSummaryLoading(false)
+    }
+  }
+
+  const fetchBookings = async (page = 0, filterState = appliedFilters) => {
+    setLoading(true)
+    setListError('')
+    try {
+      const { data } = await bookingApi.searchMyBookings(buildParams(filterState, page))
+      const result = data?.data ?? DEFAULT_PAGE
+      setBookings(result.content ?? [])
+      setPageInfo({ ...DEFAULT_PAGE, ...result })
+    } catch (err) {
       setBookings([])
+      setPageInfo(DEFAULT_PAGE)
+      setListError(err.response?.data?.message || 'Could not load bookings. Please try again.')
     } finally {
       setLoading(false)
     }
   }
 
-  useEffect(() => { fetchBookings() }, [])
+  useEffect(() => {
+    fetchSummary()
+    fetchBookings(0, DEFAULT_FILTERS)
+  }, [])
+
+  const validateFilters = () => {
+    if (filters.fromDate && filters.toDate && filters.fromDate > filters.toDate) {
+      return 'From date cannot be after to date.'
+    }
+    return ''
+  }
+
+  const handleSearch = async (event) => {
+    event.preventDefault()
+    const message = validateFilters()
+    if (message) {
+      setValidationError(message)
+      return
+    }
+    setValidationError('')
+    setAppliedFilters(filters)
+    await fetchBookings(0, filters)
+  }
+
+  const handleResetFilters = async () => {
+    setFilters(DEFAULT_FILTERS)
+    setAppliedFilters(DEFAULT_FILTERS)
+    setValidationError('')
+    await fetchBookings(0, DEFAULT_FILTERS)
+  }
+
+  const handlePageChange = async (nextPage) => {
+    if (nextPage < 0 || nextPage >= pageInfo.totalPages) return
+    await fetchBookings(nextPage, appliedFilters)
+  }
 
   const handleCancel = async (ref) => {
     setCancellingRef(ref)
     try {
       await bookingApi.cancelBooking(ref)
       toast.success('Booking cancelled. Refund will be processed in 3-5 days.')
-      await fetchBookings()
+      await Promise.all([fetchSummary(), fetchBookings(pageInfo.page, appliedFilters)])
     } finally {
       setCancellingRef(null)
     }
@@ -414,7 +499,7 @@ export default function MyBookingsPage() {
     }
   }
 
-  const filtered = filter === 'ALL' ? bookings : bookings.filter(booking => booking.bookingStatus === filter)
+  const hasActiveFilters = appliedFilters.status !== 'ALL' || appliedFilters.fromDate || appliedFilters.toDate
 
   return (
     <div className="page-shell">
@@ -429,69 +514,147 @@ export default function MyBookingsPage() {
         <div className="mb-6 grid gap-3 md:grid-cols-3">
           <div className="card p-4">
             <FaTicketAlt className="mb-3 text-[#d84e55]" />
-            <p className="text-2xl font-800 text-[#172033]">{bookings.length}</p>
+            <p className="text-2xl font-800 text-[#172033]">{summaryLoading ? '--' : summaryBookings.length}</p>
             <p className="text-sm text-slate-500">Total bookings</p>
           </div>
           <div className="card p-4">
             <FaCalendarAlt className="mb-3 text-[#2563eb]" />
-            <p className="text-2xl font-800 text-[#172033]">{bookings.filter(b => b.bookingStatus === 'CONFIRMED').length}</p>
+            <p className="text-2xl font-800 text-[#172033]">{summaryLoading ? '--' : summaryBookings.filter(b => b.bookingStatus === 'CONFIRMED').length}</p>
             <p className="text-sm text-slate-500">Confirmed trips</p>
           </div>
           <div className="card p-4">
             <FaRoute className="mb-3 text-[#059669]" />
-            <p className="text-2xl font-800 text-[#172033]">{new Set(bookings.map(b => `${b.origin}-${b.destination}`)).size}</p>
+            <p className="text-2xl font-800 text-[#172033]">{summaryLoading ? '--' : new Set(summaryBookings.map(b => `${b.origin}-${b.destination}`)).size}</p>
             <p className="text-sm text-slate-500">Routes booked</p>
           </div>
         </div>
 
-        <div className="mb-6 flex flex-wrap items-center gap-2">
-          <FaFilter className="mr-1 text-[#d84e55]" />
-          {['ALL', 'CONFIRMED', 'PENDING', 'COMPLETED', 'CANCELLED'].map(item => {
-            const style = STATUS_STYLE[item]
-            return (
-              <button
-                key={item}
-                onClick={() => setFilter(item)}
-                className={`rounded-lg border px-4 py-2 text-sm font-800 transition-colors ${
-                  filter === item
-                    ? 'border-[#172033] bg-[#172033] text-white'
-                    : 'border-gray-200 bg-white text-slate-600 hover:border-[#172033]'
-                }`}
+        <form onSubmit={handleSearch} className="mb-6 rounded-lg border border-gray-200 bg-white p-4 shadow-sm">
+          <div className="mb-4 flex items-center justify-between gap-3">
+            <div className="flex items-center gap-2">
+              <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-[#2563eb]/10 text-[#2563eb]">
+                <FaFilter />
+              </span>
+              <div>
+                <h2 className="text-base font-800 text-[#172033]">Search bookings</h2>
+                <p className="text-xs text-slate-500">{pageInfo.totalElements} booking{pageInfo.totalElements === 1 ? '' : 's'} match current filters</p>
+              </div>
+            </div>
+            {loading && <span className="text-xs font-800 uppercase text-[#2563eb]">Loading...</span>}
+          </div>
+
+          <div className="grid gap-3 md:grid-cols-[1.1fr_1fr_1fr_auto_auto] md:items-end">
+            <label>
+              <span className="mb-1 block text-xs font-800 uppercase text-slate-500">Booking status</span>
+              <select
+                value={filters.status}
+                onChange={event => setFilters(current => ({ ...current, status: event.target.value }))}
+                className="input-field"
               >
-                {style ? style.label : 'All'}
-              </button>
-            )
-          })}
-        </div>
+                <option value="ALL">All statuses</option>
+                <option value="CONFIRMED">Confirmed</option>
+                <option value="PENDING">Pending</option>
+                <option value="COMPLETED">Completed</option>
+                <option value="CANCELLED">Cancelled</option>
+              </select>
+            </label>
+
+            <label>
+              <span className="mb-1 block text-xs font-800 uppercase text-slate-500">From date</span>
+              <input
+                type="date"
+                value={filters.fromDate}
+                onChange={event => setFilters(current => ({ ...current, fromDate: event.target.value }))}
+                className="input-field"
+              />
+            </label>
+
+            <label>
+              <span className="mb-1 block text-xs font-800 uppercase text-slate-500">To date</span>
+              <input
+                type="date"
+                value={filters.toDate}
+                onChange={event => setFilters(current => ({ ...current, toDate: event.target.value }))}
+                className="input-field"
+              />
+            </label>
+
+            <button type="submit" disabled={loading} className="btn-primary w-full md:w-auto">
+              <FaSearch />
+              Search
+            </button>
+
+            <button type="button" onClick={handleResetFilters} disabled={loading} className="btn-outline w-full md:w-auto">
+              <FaUndo />
+              Reset
+            </button>
+          </div>
+
+          {(validationError || listError) && (
+            <p className="mt-3 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm font-700 text-red-700">
+              {validationError || listError}
+            </p>
+          )}
+        </form>
 
         {loading ? (
           <div className="card p-12 text-center">
             <FaTicketAlt className="mx-auto mb-4 animate-pulse text-5xl text-[#d84e55]" />
             <p className="text-sm font-700 text-slate-500">Loading your bookings...</p>
           </div>
-        ) : filtered.length === 0 ? (
+        ) : bookings.length === 0 ? (
           <div className="rounded-lg border border-dashed border-gray-300 bg-white p-12 text-center">
             <FaBus className="mx-auto mb-4 text-5xl text-slate-300" />
             <h2 className="text-xl font-800 text-[#172033]">
-              {filter === 'ALL' ? 'No bookings yet' : `No ${filter.toLowerCase()} bookings`}
+              {hasActiveFilters ? 'No bookings found for selected filters.' : 'No bookings yet'}
             </h2>
-            <p className="mt-2 text-sm text-slate-500">Search for a route to start your next trip.</p>
+            <p className="mt-2 text-sm text-slate-500">
+              {hasActiveFilters ? 'Try changing the status or booking date range.' : 'Search for a route to start your next trip.'}
+            </p>
           </div>
         ) : (
-          <div className="grid gap-4">
-            {filtered.map(booking => (
-              <BookingCard
-                key={booking.bookingRef}
-                booking={booking}
-                onClick={() => setSelected(booking)}
-                onCancel={handleCancel}
-                onDownload={handleDownloadTicket}
-                onRate={setRatingBooking}
-                downloading={downloadingRef === booking.bookingRef}
-                cancelling={cancellingRef === booking.bookingRef}
-              />
-            ))}
-          </div>
+          <>
+            <div className="grid gap-4">
+              {bookings.map(booking => (
+                <BookingCard
+                  key={booking.bookingRef}
+                  booking={booking}
+                  onClick={() => setSelected(booking)}
+                  onCancel={handleCancel}
+                  onDownload={handleDownloadTicket}
+                  onRate={setRatingBooking}
+                  downloading={downloadingRef === booking.bookingRef}
+                  cancelling={cancellingRef === booking.bookingRef}
+                />
+              ))}
+            </div>
+
+            {pageInfo.totalPages > 1 && (
+              <div className="mt-6 flex flex-col items-center justify-between gap-3 rounded-lg border border-gray-200 bg-white px-4 py-3 sm:flex-row">
+                <p className="text-sm font-700 text-slate-500">
+                  Page {pageInfo.page + 1} of {pageInfo.totalPages}
+                </p>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => handlePageChange(pageInfo.page - 1)}
+                    disabled={loading || pageInfo.page === 0}
+                    className="btn-outline px-4 py-2"
+                  >
+                    <FaChevronLeft />
+                    Previous
+                  </button>
+                  <button
+                    onClick={() => handlePageChange(pageInfo.page + 1)}
+                    disabled={loading || pageInfo.last}
+                    className="btn-outline px-4 py-2"
+                  >
+                    Next
+                    <FaChevronRight />
+                  </button>
+                </div>
+              </div>
+            )}
+          </>
         )}
       </div>
 
@@ -509,7 +672,7 @@ export default function MyBookingsPage() {
         <RatingModal
           booking={ratingBooking}
           onClose={() => setRatingBooking(null)}
-          onSaved={fetchBookings}
+          onSaved={() => fetchBookings(pageInfo.page, appliedFilters)}
         />
       )}
     </div>
