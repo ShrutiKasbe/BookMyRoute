@@ -4,7 +4,7 @@ import { format, parseISO } from 'date-fns'
 import toast from 'react-hot-toast'
 import { FaArrowLeft, FaArrowRight, FaBus, FaCheck, FaCheckCircle, FaCreditCard, FaDownload, FaMobileAlt, FaShieldAlt, FaUniversity, FaUser } from 'react-icons/fa'
 import { MdEventSeat, MdPayment } from 'react-icons/md'
-import { bookingApi, seatApi } from '../services/api'
+import { bookingApi, seatApi, paymentApi } from '../services/api'
 import { useAuth } from '../context/AuthContext'
 
 function fmtTime(dt) {
@@ -204,34 +204,116 @@ export default function BookingPage() {
     setStep(2)
   }
 
+  // ── Razorpay payment flow ──────────────────────────────────────────────
+
+  /** Dynamically loads the Razorpay checkout.js SDK if not already present */
+  const loadRazorpayScript = () =>
+    new Promise(resolve => {
+      if (document.getElementById('razorpay-sdk')) return resolve(true)
+      const script = document.createElement('script')
+      script.id = 'razorpay-sdk'
+      script.src = 'https://checkout.razorpay.com/v1/checkout.js'
+      script.onload = () => resolve(true)
+      script.onerror = () => resolve(false)
+      document.body.appendChild(script)
+    })
+
   const handlePayment = async () => {
     setLoading(true)
     try {
-      const payload = {
+      // Step 1: Load Razorpay SDK
+      const sdkLoaded = await loadRazorpayScript()
+      if (!sdkLoaded) {
+        toast.error('Failed to load payment SDK. Please check your internet connection.')
+        return
+      }
+
+      // Step 2: Create Razorpay order on the server
+      const orderPayload = {
         scheduleId: bus.scheduleId,
-        paymentMethod: payMethod,
         passengers: passengers.map(p => ({
           seatId: p.seatId,
           passengerName: p.name.trim(),
           passengerAge: parseInt(p.age, 10),
         })),
       }
-      const { data } = await bookingApi.createBooking(payload)
-      const booking = data?.data
-      setConfirmed({
-        ref: booking?.bookingRef || 'BMR-CONFIRMED',
-        amount: booking?.totalAmount || totalFare,
-        status: booking?.bookingStatus || 'CONFIRMED',
-        emailSent: booking?.notificationEmailSent === true,
-        emailMessage: booking?.notificationEmailMessage,
-      })
-      setStep(3)
-      if (booking?.notificationEmailSent === true) {
-        toast.success('Booking confirmed and email sent')
-      } else {
-        toast.success('Booking confirmed')
+      const { data: orderRes } = await paymentApi.createOrder(orderPayload)
+      const order = orderRes?.data
+
+      if (!order?.orderId) {
+        toast.error('Could not create payment order. Please try again.')
+        return
       }
-    } finally {
+
+      // Step 3: Open Razorpay checkout popup
+      const razorpayOptions = {
+        key: order.keyId,
+        amount: Math.round(Number(order.amount) * 100), // paise
+        currency: order.currency || 'INR',
+        name: order.companyName || 'BookMyRoute',
+        description: order.description || `${bus.origin} → ${bus.destination}`,
+        order_id: order.orderId,
+        prefill: {
+          name:  order.customerName  || '',
+          email: order.customerEmail || '',
+          contact: order.customerPhone || '',
+        },
+        theme: { color: '#d84e55' },
+        modal: {
+          ondismiss: () => {
+            toast.error('Payment cancelled')
+            setLoading(false)
+          },
+        },
+
+        // Step 4: Called by Razorpay after successful payment
+        handler: async (response) => {
+          try {
+            const verifyPayload = {
+              razorpayOrderId:   response.razorpay_order_id,
+              razorpayPaymentId: response.razorpay_payment_id,
+              razorpaySignature: response.razorpay_signature,
+              scheduleId:        bus.scheduleId,
+              paymentMethod:     payMethod,
+              passengers: passengers.map(p => ({
+                seatId:         p.seatId,
+                passengerName:  p.name.trim(),
+                passengerAge:   parseInt(p.age, 10),
+              })),
+            }
+
+            const { data: verifyRes } = await paymentApi.verifyPayment(verifyPayload)
+            const booking = verifyRes?.data
+
+            setConfirmed({
+              ref:          booking?.bookingRef || 'BMR-CONFIRMED',
+              amount:       booking?.totalAmount || totalFare,
+              status:       booking?.bookingStatus || 'CONFIRMED',
+              emailSent:    booking?.notificationEmailSent === true,
+              emailMessage: booking?.notificationEmailMessage,
+              paymentId:    response.razorpay_payment_id,
+            })
+            setStep(3)
+            toast.success(booking?.notificationEmailSent
+              ? 'Payment successful! Booking confirmed and email sent.'
+              : 'Payment successful! Booking confirmed.')
+          } catch {
+            toast.error('Payment was received but booking confirmation failed. Contact support with your payment ID.')
+          } finally {
+            setLoading(false)
+          }
+        },
+      }
+
+      const rzp = new window.Razorpay(razorpayOptions)
+      rzp.on('payment.failed', (response) => {
+        toast.error(`Payment failed: ${response.error?.description || 'Unknown error'}`)
+        setLoading(false)
+      })
+      rzp.open()
+
+    } catch {
+      toast.error('Something went wrong initiating payment. Please try again.')
       setLoading(false)
     }
   }
@@ -283,6 +365,7 @@ export default function BookingPage() {
               ['Seats', selected.map(s => s.seatNumber).join(', ')],
               ['Passengers', selected.length],
               ['Total', `Rs ${confirmed.amount}`],
+              ...(confirmed.paymentId ? [['Payment ID', confirmed.paymentId]] : []),
             ].map(([label, value]) => (
               <div key={label} className="rounded-lg bg-slate-50 p-3">
                 <p className="text-xs font-800 uppercase text-slate-400">{label}</p>
