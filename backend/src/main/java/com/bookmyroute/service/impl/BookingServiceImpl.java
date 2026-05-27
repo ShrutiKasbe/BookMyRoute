@@ -1,5 +1,7 @@
 package com.bookmyroute.service.impl;
 
+import org.springframework.messaging.simp.SimpMessagingTemplate;
+import com.bookmyroute.dto.response.SeatUpdateMessage;
 import com.bookmyroute.dto.request.BookingRequest;
 import com.bookmyroute.dto.request.BookingSearchRequest;
 import com.bookmyroute.dto.response.BookingResponse;
@@ -32,6 +34,7 @@ import java.util.concurrent.atomic.AtomicLong;
 
 @Service
 public class BookingServiceImpl implements BookingService {
+    private final SimpMessagingTemplate messagingTemplate;
     private static final AtomicLong SEQ = new AtomicLong(1);
     private static final int MAX_BOOKING_PAGE_SIZE = 50;
     private static final Map<String, String> BOOKING_SORT_FIELDS = Map.of(
@@ -48,7 +51,8 @@ public class BookingServiceImpl implements BookingService {
                               UserRepository userRepository,
                               PaymentRepository paymentRepository,
                               RouteReviewRepository routeReviewRepository,
-                              EmailService emailService) {
+                              EmailService emailService,
+                              SimpMessagingTemplate messagingTemplate) {
         this.bookingRepository = bookingRepository;
         this.scheduleRepository = scheduleRepository;
         this.seatRepository = seatRepository;
@@ -56,6 +60,7 @@ public class BookingServiceImpl implements BookingService {
         this.paymentRepository = paymentRepository;
         this.routeReviewRepository = routeReviewRepository;
         this.emailService = emailService;
+        this.messagingTemplate = messagingTemplate;
     }
 
 
@@ -211,6 +216,16 @@ public class BookingServiceImpl implements BookingService {
         }
 
         Booking saved = bookingRepository.save(booking);
+
+        SeatUpdateMessage updateMessage = new SeatUpdateMessage(
+        schedule.getId(),
+        schedule.getAvailableSeats()
+        );
+
+        messagingTemplate.convertAndSend(
+        "/topic/seats/" + schedule.getId(),
+        updateMessage
+        );
         EmailDeliveryResponse emailDelivery = emailService.sendBookingCancellation(saved);
 
         return toResponse(saved, emailDelivery);

@@ -77,10 +77,15 @@ export function LoginPage() {
   const isAdminMode = mode === 'admin'
 
   const handleSubmit = async (e) => {
+console.log("===============>")
+    
     e.preventDefault()
     setLoading(true)
     try {
+
+      console.log("==>")
       const signIn = isAdminMode ? adminLogin : login
+      console.log(signIn,"==>")
       const user   = await signIn(form.email.trim(), form.password)
       const fallbackPath = isAdminRole(user.role) ? '/admin' : '/search'
       navigate(state?.redirectTo && !isAdminRole(user.role) ? state.redirectTo : fallbackPath, { replace: true })
