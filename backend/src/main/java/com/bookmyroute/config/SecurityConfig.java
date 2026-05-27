@@ -22,6 +22,7 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
+import org.springframework.http.HttpMethod;
 
 import java.util.Arrays;
 import java.util.List;
@@ -57,7 +58,14 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.GET,  "/api/auth/me").authenticated()
                 .requestMatchers(HttpMethod.POST, "/api/support/requests").permitAll()
 
+<<<<<<< HEAD
                 // Swagger / OpenAPI
+=======
+                .requestMatchers(HttpMethod.GET, "/api/reviews/**").permitAll()
+                .requestMatchers(HttpMethod.POST, "/api/reviews/**").authenticated()
+                
+                // Swagger / OpenAPI (optional, keep for dev)
+>>>>>>> f07570eac7d449cde4e053568603571aed343ff1
                 .requestMatchers(
                     "/v3/api-docs/**",
                     "/swagger-ui/**",
