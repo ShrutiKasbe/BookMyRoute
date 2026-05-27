@@ -1,3 +1,5 @@
+
+import { connectSeatSocket, disconnectSeatSocket } from '../services/websocket';
 import { useEffect, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { format, parseISO } from 'date-fns'
@@ -144,6 +146,7 @@ export default function BookingPage() {
   const [passengers, setPassengers] = useState([])
   const [payMethod, setPayMethod] = useState('UPI')
   const [loading, setLoading] = useState(false)
+  const [availableSeats, setAvailableSeats] = useState(0);
   const [downloading, setDownloading] = useState(false)
   const [confirmed, setConfirmed] = useState(null)
 
@@ -151,13 +154,36 @@ export default function BookingPage() {
     if (!bus?.scheduleId) return
     setSeatsLoading(true)
     seatApi.getSeats(bus.scheduleId)
-      .then(res => {
-        const raw = res.data?.data ?? []
-        setSeats(raw.map(seat => ({ ...seat, status: 'available' })))
-      })
-      .catch(() => setSeats([]))
-      .finally(() => setSeatsLoading(false))
+  .then(res => {
+    const raw = res.data?.data ?? []
+
+    setSeats(raw.map(seat => ({ ...seat, status: 'available' })))
+
+
+    setAvailableSeats(
+      raw.filter(seat => seat.status !== 'booked').length
+    )
+
+  })
+  .catch(() => setSeats([]))
+  .finally(() => setSeatsLoading(false))
   }, [bus?.scheduleId])
+
+  useEffect(() => {
+
+  if (!bus?.scheduleId) return
+
+  connectSeatSocket(bus.scheduleId, (data) => {
+
+    setAvailableSeats(data.availableSeats)
+
+  })
+
+  return () => {
+    disconnectSeatSocket()
+  }
+
+}, [bus?.scheduleId])
 
   if (!bus) {
     return (
@@ -427,6 +453,9 @@ export default function BookingPage() {
             <h2 className="mb-6 flex items-center gap-2 text-2xl font-800 text-[#172033]">
               <MdEventSeat className="text-[#d84e55]" /> Select seats
             </h2>
+            <div className="mb-4 rounded-lg bg-green-100 px-4 py-2 font-semibold text-green-700">
+              Live Seats Available: {availableSeats}
+            </div>
             <SeatGrid seats={seats} selected={selected} onToggle={toggleSeat} loading={seatsLoading} />
             {selected.length > 0 && (
               <div className="mt-6 flex flex-col gap-4 rounded-lg border border-amber-300 bg-amber-50 p-4 sm:flex-row sm:items-center sm:justify-between">
